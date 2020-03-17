@@ -1,6 +1,6 @@
 package ru.ifmo.rain.ivanova.concurrent;
 
-import info.kgeorgiy.java.advanced.concurrent.ListIP;
+import info.kgeorgiy.java.advanced.concurrent.AdvancedIP;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,13 +15,14 @@ import java.util.stream.Stream;
  * Implements {@code ListIP} interface.
  *
  * @author sasha.pff
+ * @see info.kgeorgiy.java.advanced.concurrent.AdvancedIP
  * @see info.kgeorgiy.java.advanced.concurrent.ListIP
  * @see info.kgeorgiy.java.advanced.concurrent.ScalarIP
  */
-public class IterativeParallelism implements ListIP {
+public class IterativeParallelism implements AdvancedIP {
 
-    private <T> List<Stream<? extends T>> split(int ths, List<? extends T> values) {
-        List<Stream<? extends T>> blocks = new ArrayList<>();
+    private <T> List<Stream<T>> split(int ths, List<T> values) {
+        List<Stream<T>> blocks = new ArrayList<>();
         int blockSize = values.size() / ths;
         int blockRest = values.size() % ths;
         int position = 0;
@@ -36,9 +37,9 @@ public class IterativeParallelism implements ListIP {
         return blocks;
     }
 
-    private <T, E, A> A run(int ths, List<? extends T> values, Function<Stream<? extends T>, E> function,
-                            Function<Stream<? extends E>, A> reduce) throws InterruptedException {
-        List<Stream<? extends T>> blocks = split(ths, values);
+    private <T, E, A> A run(int ths, List<T> values, Function<Stream<T>, E> function,
+                            Function<Stream<E>, A> reduce) throws InterruptedException {
+        List<Stream<T>> blocks = split(ths, values);
         ths = blocks.size();
         List<E> blockAnswers = new ArrayList<>(Collections.nCopies(ths, null));
         List<Thread> threads = new ArrayList<>();
@@ -48,8 +49,18 @@ public class IterativeParallelism implements ListIP {
             threads.add(thread);
             thread.start();
         }
+        List<InterruptedException> exceptions = new ArrayList<>();
         for (Thread thread : threads) {
-            thread.join();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                exceptions.add(e);
+            }
+        }
+        if (!exceptions.isEmpty()) {
+            InterruptedException exception = new InterruptedException();
+            exceptions.forEach(exception::addSuppressed);
+            throw exception;
         }
         return reduce.apply(blockAnswers.stream());
     }
@@ -58,8 +69,7 @@ public class IterativeParallelism implements ListIP {
      * Joins {@code values} to {@code String}.
      *
      * @param threads number of concurrent threads.
-     * @param values values to join.
-     *
+     * @param values  values to join.
      * @return concatenated {@code String} with result of calling {@link #toString()} method of each value
      * @throws InterruptedException if any thread was interrupted
      */
@@ -76,10 +86,9 @@ public class IterativeParallelism implements ListIP {
     /**
      * Filters {@code values} by {@code predicate}.
      *
-     * @param threads number of concurrent threads.
-     * @param values values to filter.
+     * @param threads   number of concurrent threads.
+     * @param values    values to filter.
      * @param predicate filter predicate.
-     *
      * @return {@code List} of values that satisfy a predicate
      * @throws InterruptedException if any thread was interrupted
      */
@@ -92,9 +101,8 @@ public class IterativeParallelism implements ListIP {
      * Applies function {@code f} to {@code values}.
      *
      * @param threads number of concurrent threads.
-     * @param values values to filter.
-     * @param f mapper function.
-     *
+     * @param values  values to filter.
+     * @param f       mapper function.
      * @return {@code List} of values mapped by function
      * @throws InterruptedException if any thread was interrupted
      */
@@ -106,10 +114,9 @@ public class IterativeParallelism implements ListIP {
     /**
      * Finds maximum of {@code values}.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to get maximum of.
+     * @param threads    number or concurrent threads.
+     * @param values     values to get maximum of.
      * @param comparator value comparator.
-     *
      * @return maximum of values
      * @throws InterruptedException if any thread was interrupted
      */
@@ -122,10 +129,9 @@ public class IterativeParallelism implements ListIP {
     /**
      * Finds minimum of {@code values}.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to get minimum of.
+     * @param threads    number or concurrent threads.
+     * @param values     values to get minimum of.
      * @param comparator value comparator.
-     *
      * @return minimum of values
      * @throws InterruptedException if any thread was interrupted
      */
@@ -138,10 +144,9 @@ public class IterativeParallelism implements ListIP {
     /**
      * Checks if all {@code values} are satisfied by {@code predicate}.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to test.
+     * @param threads   number or concurrent threads.
+     * @param values    values to test.
      * @param predicate test predicate.
-     *
      * @return {@code boolean} value indicating if all values are satisfied by predicate
      * @throws InterruptedException if any thread was interrupted
      */
@@ -154,10 +159,9 @@ public class IterativeParallelism implements ListIP {
     /**
      * Checks if any {@code value} are satisfied by {@code predicate}.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to test.
+     * @param threads   number or concurrent threads.
+     * @param values    values to test.
      * @param predicate test predicate.
-     *
      * @return {@code boolean} value indicating if any value is satisfied by predicate
      * @throws InterruptedException if any thread was interrupted
      */
@@ -165,5 +169,38 @@ public class IterativeParallelism implements ListIP {
     public <T> boolean any(int threads, List<? extends T> values, Predicate<? super T> predicate) throws InterruptedException {
         return run(threads, values, stream -> stream.anyMatch(predicate),
                 stream -> stream.anyMatch(Boolean::booleanValue));
+    }
+
+    /**
+     * Reduces values using monoid.
+     *
+     * @param threads number of concurrent threads.
+     * @param values values to reduce.
+     * @param monoid monoid to use.
+     *
+     * @return values reduced by provided monoid or {@link Monoid#getIdentity() identity} if not values specified.
+     * @throws InterruptedException if executing thread was interrupted.
+     */
+    @Override
+    public <T> T reduce(int threads, List<T> values, Monoid<T> monoid) throws InterruptedException {
+        return run(threads, values, stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()),
+                stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()));
+    }
+
+    /**
+     * Maps and reduces values using monoid.
+     *
+     * @param threads number of concurrent threads.
+     * @param values values to reduce.
+     * @param lift mapping function.
+     * @param monoid monoid to use.
+     *
+     * @return values reduced by provided monoid or {@link Monoid#getIdentity() identity} if not values specified.
+     * @throws InterruptedException if executing thread was interrupted.
+     */
+    @Override
+    public <T, R> R mapReduce(int threads, List<T> values, Function<T, R> lift, Monoid<R> monoid) throws InterruptedException {
+        return run(threads, values, stream -> stream.map(lift).reduce(monoid.getIdentity(), monoid.getOperator()),
+                stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()));
     }
 }
