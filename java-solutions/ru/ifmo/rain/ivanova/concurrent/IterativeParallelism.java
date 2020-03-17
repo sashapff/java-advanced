@@ -54,6 +54,8 @@ public class IterativeParallelism implements AdvancedIP {
             try {
                 thread.join();
             } catch (InterruptedException e) {
+                // :NOTE: interrupt children
+                // :NOTE: join all threads
                 exceptions.add(e);
             }
         }
@@ -137,6 +139,7 @@ public class IterativeParallelism implements AdvancedIP {
      */
     @Override
     public <T> T minimum(int threads, List<? extends T> values, Comparator<? super T> comparator) throws InterruptedException {
+        // :NOTE: unify with max
         return run(threads, values, stream -> stream.min(comparator).orElseThrow(),
                 stream -> stream.min(comparator).orElseThrow());
     }
@@ -152,6 +155,7 @@ public class IterativeParallelism implements AdvancedIP {
      */
     @Override
     public <T> boolean all(int threads, List<? extends T> values, Predicate<? super T> predicate) throws InterruptedException {
+        // :NOTE:  unify with any
         return run(threads, values, stream -> stream.allMatch(predicate),
                 stream -> stream.allMatch(Boolean::booleanValue));
     }
@@ -200,6 +204,7 @@ public class IterativeParallelism implements AdvancedIP {
      */
     @Override
     public <T, R> R mapReduce(int threads, List<T> values, Function<T, R> lift, Monoid<R> monoid) throws InterruptedException {
+        // :NOTE: copy-and-paste
         return run(threads, values, stream -> stream.map(lift).reduce(monoid.getIdentity(), monoid.getOperator()),
                 stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()));
     }
