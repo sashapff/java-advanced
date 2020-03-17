@@ -50,12 +50,15 @@ public class IterativeParallelism implements AdvancedIP {
             thread.start();
         }
         List<InterruptedException> exceptions = new ArrayList<>();
+        boolean interrupted = false;
         for (Thread thread : threads) {
             try {
+                if (interrupted) {
+                    thread.interrupt();
+                }
                 thread.join();
             } catch (InterruptedException e) {
-                // :NOTE: interrupt children
-                // :NOTE: join all threads
+                interrupted = true;
                 exceptions.add(e);
             }
         }
@@ -139,9 +142,7 @@ public class IterativeParallelism implements AdvancedIP {
      */
     @Override
     public <T> T minimum(int threads, List<? extends T> values, Comparator<? super T> comparator) throws InterruptedException {
-        // :NOTE: unify with max
-        return run(threads, values, stream -> stream.min(comparator).orElseThrow(),
-                stream -> stream.min(comparator).orElseThrow());
+        return maximum(threads, values, comparator.reversed());
     }
 
     /**
@@ -155,9 +156,7 @@ public class IterativeParallelism implements AdvancedIP {
      */
     @Override
     public <T> boolean all(int threads, List<? extends T> values, Predicate<? super T> predicate) throws InterruptedException {
-        // :NOTE:  unify with any
-        return run(threads, values, stream -> stream.allMatch(predicate),
-                stream -> stream.allMatch(Boolean::booleanValue));
+        return !any(threads, values, predicate.negate());
     }
 
     /**
@@ -175,37 +174,38 @@ public class IterativeParallelism implements AdvancedIP {
                 stream -> stream.anyMatch(Boolean::booleanValue));
     }
 
+    private <T> T reduceStream(Stream<T> stream, Monoid<T> monoid) {
+        return stream.reduce(monoid.getIdentity(), monoid.getOperator());
+    }
+
     /**
      * Reduces values using monoid.
      *
      * @param threads number of concurrent threads.
-     * @param values values to reduce.
-     * @param monoid monoid to use.
-     *
+     * @param values  values to reduce.
+     * @param monoid  monoid to use.
      * @return values reduced by provided monoid or {@link Monoid#getIdentity() identity} if not values specified.
      * @throws InterruptedException if executing thread was interrupted.
      */
     @Override
     public <T> T reduce(int threads, List<T> values, Monoid<T> monoid) throws InterruptedException {
-        return run(threads, values, stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()),
-                stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()));
+        Function<Stream<T>, T> reduceStream = stream -> reduceStream(stream,monoid);
+        return run(threads, values, reduceStream, reduceStream);
     }
 
     /**
      * Maps and reduces values using monoid.
      *
      * @param threads number of concurrent threads.
-     * @param values values to reduce.
-     * @param lift mapping function.
-     * @param monoid monoid to use.
-     *
+     * @param values  values to reduce.
+     * @param lift    mapping function.
+     * @param monoid  monoid to use.
      * @return values reduced by provided monoid or {@link Monoid#getIdentity() identity} if not values specified.
      * @throws InterruptedException if executing thread was interrupted.
      */
     @Override
     public <T, R> R mapReduce(int threads, List<T> values, Function<T, R> lift, Monoid<R> monoid) throws InterruptedException {
-        // :NOTE: copy-and-paste
-        return run(threads, values, stream -> stream.map(lift).reduce(monoid.getIdentity(), monoid.getOperator()),
-                stream -> stream.reduce(monoid.getIdentity(), monoid.getOperator()));
+        return run(threads, values, stream -> reduceStream(stream.map(lift), monoid),
+                stream -> reduceStream(stream, monoid));
     }
 }
