@@ -49,22 +49,29 @@ public class IterativeParallelism implements AdvancedIP {
             threads.add(thread);
             thread.start();
         }
-        List<InterruptedException> exceptions = new ArrayList<>();
-        boolean interrupted = false;
-        for (Thread thread : threads) {
+        InterruptedException exception = null;
+        int index;
+        for (index = 0; index < threads.size(); index++) {
             try {
-                if (interrupted) {
-                    thread.interrupt();
-                }
-                thread.join();
+                threads.get(index).join();
             } catch (InterruptedException e) {
-                interrupted = true;
-                exceptions.add(e);
+                exception = new InterruptedException();
+                exception.addSuppressed(e);
+                break;
             }
         }
-        if (!exceptions.isEmpty()) {
-            InterruptedException exception = new InterruptedException();
-            exceptions.forEach(exception::addSuppressed);
+        if (exception != null) {
+            for (int i = index; i < threads.size(); i++) {
+                threads.get(i).interrupt();
+            }
+            for (int i = index; i < threads.size(); i++) {
+                try {
+                    threads.get(i).join();
+                } catch (InterruptedException e) {
+                    exception.addSuppressed(e);
+                    i--;
+                }
+            }
             throw exception;
         }
         return reduce.apply(blockAnswers.stream());
@@ -189,7 +196,7 @@ public class IterativeParallelism implements AdvancedIP {
      */
     @Override
     public <T> T reduce(int threads, List<T> values, Monoid<T> monoid) throws InterruptedException {
-        Function<Stream<T>, T> reduceStream = stream -> reduceStream(stream,monoid);
+        Function<Stream<T>, T> reduceStream = stream -> reduceStream(stream, monoid);
         return run(threads, values, reduceStream, reduceStream);
     }
 
