@@ -2,7 +2,6 @@ package ru.ifmo.rain.ivanova.concurrent;
 
 import info.kgeorgiy.java.advanced.concurrent.AdvancedIP;
 import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
-import org.jsoup.select.Collector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,6 +10,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -33,6 +33,7 @@ public class IterativeParallelism implements AdvancedIP {
 
     /**
      * Mapper constructor. Implementation of {@code IterativeParallelism} with {@code ParallelMapper}.
+     *
      * @param mapper
      */
     public IterativeParallelism(ParallelMapper mapper) {
@@ -87,14 +88,11 @@ public class IterativeParallelism implements AdvancedIP {
         threads = blocks.size();
         List<E> blockAnswers;
         if (mapper == null) {
-            final List<Thread> workers = new ArrayList<>();
             blockAnswers = new ArrayList<>(Collections.nCopies(threads, null));
-            for (int i = 0; i < threads; i++) {
-                final int index = i;
-                Thread thread = new Thread(() -> blockAnswers.set(index, function.apply(blocks.get(index))));
-                workers.add(thread);
-                thread.start();
-            }
+            final List<Thread> workers = IntStream.range(0, threads)
+                    .mapToObj(index -> new Thread(() -> blockAnswers.set(index, function.apply(blocks.get(index)))))
+                    .collect(Collectors.toList());
+            workers.forEach(Thread::start);
             joinAllThreads(workers);
         } else {
             blockAnswers = mapper.map(function, blocks);
