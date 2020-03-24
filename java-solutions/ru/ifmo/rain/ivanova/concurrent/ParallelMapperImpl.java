@@ -4,6 +4,8 @@ import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Implements {@code ParallelMapper} interface.
@@ -22,19 +24,17 @@ public class ParallelMapperImpl implements ParallelMapper {
      */
     public ParallelMapperImpl(int threads) {
         tasks = new ArrayDeque<>();
-        workers = new ArrayList<>();
-        for (int i = 0; i < threads; i++) {
-            workers.add(new Thread(() -> {
-                try {
-                    while (!Thread.interrupted()) {
-                        synchronizedRun();
-                    }
-                } catch (InterruptedException ignored) {
-                } finally {
-                    Thread.currentThread().interrupt();
+        Runnable start_task = () -> {
+            try {
+                while (!Thread.interrupted()) {
+                    synchronizedRun();
                 }
-            }));
-        }
+            } catch (InterruptedException ignored) {
+            } finally {
+                Thread.currentThread().interrupt();
+            }
+        };
+        workers = IntStream.range(0, threads).mapToObj(unused -> new Thread(start_task)).collect(Collectors.toList());
         workers.forEach(Thread::start);
     }
 
