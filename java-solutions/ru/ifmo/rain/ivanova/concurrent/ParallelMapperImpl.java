@@ -14,22 +14,21 @@ import java.util.stream.IntStream;
  * @see info.kgeorgiy.java.advanced.mapper.ParallelMapper
  */
 public class ParallelMapperImpl implements ParallelMapper {
-    private List<Thread> workers;
-    private final Queue<Runnable> tasks;
+    private final List<Thread> workers;
+    private final Queue<Runnable> tasks = new ArrayDeque<>();
 
     /**
      * Thread-number constructor. Create implementation of {@code ParallelMapper} with {@code threads} threads.
      *
      * @param threads number of available threads.
      */
-    public ParallelMapperImpl(int threads) {
-        tasks = new ArrayDeque<>();
-        Runnable startTask = () -> {
+    public ParallelMapperImpl(final int threads) {
+        final Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
                     synchronizedRun();
                 }
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             } finally {
                 Thread.currentThread().interrupt();
             }
@@ -39,7 +38,8 @@ public class ParallelMapperImpl implements ParallelMapper {
     }
 
     private void synchronizedRun() throws InterruptedException {
-        Runnable task;
+        final Runnable task;
+        // :NOTE: move to tasks
         synchronized (tasks) {
             while (tasks.isEmpty()) {
                 tasks.wait();
@@ -49,7 +49,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         task.run();
     }
 
-    private void synchronizedAdd(Runnable task) throws InterruptedException {
+    private void synchronizedAdd(final Runnable task) {
         synchronized (tasks) {
             tasks.add(task);
             tasks.notify();
@@ -57,15 +57,15 @@ public class ParallelMapperImpl implements ParallelMapper {
     }
 
     private class ParallelCollector<T> {
-        private List<T> results;
+        private final List<T> results;
         private int changed;
 
-        ParallelCollector(int size) {
+        ParallelCollector(final int size) {
             results = new ArrayList<>(Collections.nCopies(size, null));
             changed = 0;
         }
 
-        synchronized void setResult(int index, T result) {
+        synchronized void setResult(final int index, final T result) {
             results.set(index, result);
             changed++;
             if (changed == results.size()) {
@@ -92,24 +92,26 @@ public class ParallelMapperImpl implements ParallelMapper {
      * @throws InterruptedException if any error occur during execution.
      */
     @Override
-    public <T, R> List<R> map(Function<? super T, ? extends R> function,
-                              List<? extends T> list) throws InterruptedException {
-        ParallelCollector collector = new ParallelCollector(list.size());
-        List<RuntimeException> exceptions = new ArrayList<>();
+    public <T, R> List<R> map(final Function<? super T, ? extends R> function,
+                              final List<? extends T> list) throws InterruptedException {
+        // :NOTE: Unchecked warning
+        final ParallelCollector collector = new ParallelCollector(list.size());
+        final List<RuntimeException> exceptions = new ArrayList<>();
         int index = 0;
-        for (Iterator<? extends T> iterator = list.iterator(); iterator.hasNext(); index++) {
-            T value = iterator.next();
+        for (final Iterator<? extends T> iterator = list.iterator(); iterator.hasNext(); index++) {
+            final T value = iterator.next();
             final int i = index;
             synchronizedAdd(() -> {
+                // :NOTE: Унифицировать
                 try {
                     collector.setResult(i, function.apply(value));
-                } catch (RuntimeException e) {
+                } catch (final RuntimeException e) {
                     exceptions.add(e);
                 }
             });
         }
         if (!exceptions.isEmpty()) {
-            RuntimeException exception = new RuntimeException();
+            final RuntimeException exception = new RuntimeException();
             exceptions.forEach(exception::addSuppressed);
             throw exception;
         }
@@ -125,7 +127,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         workers.forEach(worker -> {
             try {
                 worker.join();
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
         });
     }

@@ -31,12 +31,13 @@ public class IterativeParallelism implements AdvancedIP {
         mapper = null;
     }
 
+    // :NOTE: Некорректный javadoc
     /**
      * Mapper constructor. Implementation of {@code IterativeParallelism} with {@code ParallelMapper}.
      *
      * @param mapper
      */
-    public IterativeParallelism(ParallelMapper mapper) {
+    public IterativeParallelism(final ParallelMapper mapper) {
         this.mapper = mapper;
     }
 
@@ -56,14 +57,13 @@ public class IterativeParallelism implements AdvancedIP {
         return blocks;
     }
 
-    private void joinAllThreads(List<Thread> workers) throws InterruptedException {
-        int index;
+    private void joinAllThreads(final List<Thread> workers) throws InterruptedException {
         final int threads = workers.size();
-        for (index = 0; index < threads; index++) {
+        for (int index = 0; index < threads; index++) {
             try {
                 workers.get(index).join();
             } catch (final InterruptedException e) {
-                InterruptedException exception = new InterruptedException();
+                final InterruptedException exception = new InterruptedException();
                 exception.addSuppressed(e);
                 for (int i = index; i < threads; i++) {
                     workers.get(i).interrupt();
@@ -82,11 +82,11 @@ public class IterativeParallelism implements AdvancedIP {
     }
 
     private <T, E, A> A run(int threads, final List<? extends T> values,
-                            Function<Stream<? extends T>, E> function,
-                            Function<? super Stream<E>, A> reduce) throws InterruptedException {
-        List<Stream<? extends T>> blocks = split(threads, values);
+                            final Function<Stream<? extends T>, E> function,
+                            final Function<? super Stream<E>, A> reduce) throws InterruptedException {
+        final List<Stream<? extends T>> blocks = split(threads, values);
         threads = blocks.size();
-        List<E> blockAnswers;
+        final List<E> blockAnswers;
         if (mapper == null) {
             blockAnswers = new ArrayList<>(Collections.nCopies(threads, null));
             final List<Thread> workers = IntStream.range(0, threads)
@@ -119,7 +119,7 @@ public class IterativeParallelism implements AdvancedIP {
     }
 
     private <T, R> List<R> runFilterAndMap(final int threads, final List<? extends T> values,
-                                           Function<Stream<? extends T>, Stream<? extends R>> function)
+                                           final Function<Stream<? extends T>, Stream<? extends R>> function)
             throws InterruptedException {
         return run(threads, values, stream -> function.apply(stream).collect(Collectors.toList()), this::collectStream);
     }
