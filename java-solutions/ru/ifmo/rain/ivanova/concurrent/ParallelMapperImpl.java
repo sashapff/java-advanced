@@ -24,7 +24,7 @@ public class ParallelMapperImpl implements ParallelMapper {
      */
     public ParallelMapperImpl(int threads) {
         tasks = new ArrayDeque<>();
-        Runnable start_task = () -> {
+        Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
                     synchronizedRun();
@@ -34,7 +34,7 @@ public class ParallelMapperImpl implements ParallelMapper {
                 Thread.currentThread().interrupt();
             }
         };
-        workers = IntStream.range(0, threads).mapToObj(unused -> new Thread(start_task)).collect(Collectors.toList());
+        workers = IntStream.range(0, threads).mapToObj(unused -> new Thread(startTask)).collect(Collectors.toList());
         workers.forEach(Thread::start);
     }
 
