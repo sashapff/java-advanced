@@ -3,6 +3,7 @@ package ru.ifmo.rain.ivanova.concurrent;
 import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -60,17 +61,20 @@ public class ParallelMapperImpl implements ParallelMapper {
 
     }
 
-    private class ParallelCollector<T> {
+    private class ParallelList<T> {
         private List<T> results;
         private int changed;
-        private final List<RuntimeException> exceptions = new ArrayList<>();
 
-        ParallelCollector(final int size) {
+        ParallelList(final int size) {
             results = new ArrayList<>(Collections.nCopies(size, null));
             changed = 0;
         }
 
-        synchronized void setResult(final int index, final T result) {
+        ParallelList() {
+            results = new ArrayList<>();
+        }
+
+        synchronized void set(final int index, final T result) {
             results.set(index, result);
             changed++;
             if (changed == results.size()) {
@@ -78,20 +82,23 @@ public class ParallelMapperImpl implements ParallelMapper {
             }
         }
 
-        synchronized void addException(RuntimeException e) {
-            exceptions.add(e);
-        }
-
-        synchronized List<T> getResults() throws InterruptedException {
-            if (!exceptions.isEmpty()) {
-                final RuntimeException exception = new RuntimeException();
-                exceptions.forEach(exception::addSuppressed);
-                throw exception;
-            }
+        synchronized List<T> getList() throws InterruptedException {
             while (changed < results.size()) {
                 wait();
             }
             return results;
+        }
+
+        synchronized void add(final T element) {
+            results.add(element);
+        }
+
+        synchronized boolean isEmpty() {
+            return results.isEmpty();
+        }
+
+        synchronized void forEach(Consumer<? super T> consumer) {
+            results.forEach(consumer);
         }
     }
 
@@ -108,21 +115,27 @@ public class ParallelMapperImpl implements ParallelMapper {
     @Override
     public <T, R> List<R> map(final Function<? super T, ? extends R> function,
                               final List<? extends T> list) throws InterruptedException {
-        final ParallelCollector<R> collector = new ParallelCollector<>(list.size());
+        final ParallelList<R> collector = new ParallelList<>(list.size());
+        final ParallelList<RuntimeException> exceptions = new ParallelList<>();
         int index = 0;
         for (final T value : list) {
             final int i = index++;
             synchronized (queue) {
                 queue.add(() -> {
                     try {
-                        collector.setResult(i, function.apply(value));
+                        collector.set(i, function.apply(value));
                     } catch (final RuntimeException e) {
-                        collector.addException(e);
+                        exceptions.add(e);
                     }
                 });
             }
         }
-        return collector.getResults();
+        if (!exceptions.isEmpty()) {
+            final RuntimeException exception = new RuntimeException();
+            exceptions.forEach(exception::addSuppressed);
+            throw exception;
+        }
+        return collector.getList();
     }
 
     /**
