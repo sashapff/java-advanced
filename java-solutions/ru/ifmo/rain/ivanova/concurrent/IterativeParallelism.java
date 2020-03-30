@@ -31,11 +31,10 @@ public class IterativeParallelism implements AdvancedIP {
         mapper = null;
     }
 
-    // :NOTE: Некорректный javadoc
     /**
      * Mapper constructor. Implementation of {@code IterativeParallelism} with {@code ParallelMapper}.
      *
-     * @param mapper
+     * @param mapper mapper to use.
      */
     public IterativeParallelism(final ParallelMapper mapper) {
         this.mapper = mapper;
