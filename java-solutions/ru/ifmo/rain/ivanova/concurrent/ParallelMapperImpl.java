@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 public class ParallelMapperImpl implements ParallelMapper {
     private final List<Thread> workers;
     private final ParallelQueue<Runnable> queue;
+    private boolean closed = false;
 
     /**
      * Thread-number constructor. Create implementation of {@code ParallelMapper} with {@code threads} threads.
@@ -89,7 +90,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
 
         synchronized List<T> getList() throws InterruptedException {
-            while (changed < results.size()) {
+            while (changed < results.size() && !closed) {
                 wait();
             }
             if (!exceptions.isEmpty()) {
@@ -137,6 +138,7 @@ public class ParallelMapperImpl implements ParallelMapper {
      */
     @Override
     public void close() {
+        closed = true;
         workers.forEach(Thread::interrupt);
         workers.forEach(worker -> {
             try {
