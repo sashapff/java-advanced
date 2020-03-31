@@ -24,12 +24,11 @@ public class ParallelMapperImpl implements ParallelMapper {
      * @param threads number of available threads.
      */
     public ParallelMapperImpl(final int threads) {
-        queue = new ParallelQueue<>(new ArrayDeque<>());
+        queue = new ParallelQueue<>();
         final Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
-                    Runnable task = queue.poll();
-                    task.run();
+                    queue.poll().run();
                 }
             } catch (final InterruptedException ignored) {
             } finally {
@@ -41,11 +40,7 @@ public class ParallelMapperImpl implements ParallelMapper {
     }
 
     private class ParallelQueue<T> {
-        private final Queue<T> elements;
-
-        ParallelQueue(Queue<T> elements) {
-            this.elements = elements;
-        }
+        private final Queue<T> elements = new ArrayDeque<>();
 
         synchronized T poll() throws InterruptedException {
             while (elements.isEmpty()) {
@@ -58,21 +53,18 @@ public class ParallelMapperImpl implements ParallelMapper {
             elements.add(task);
             notify();
         }
-
     }
 
     private class ParallelList<T> {
         private final List<T> results;
-        private final List<RuntimeException> exceptions;
+        private final List<RuntimeException> exceptions = new ArrayList<>();
         private int changed;
 
         ParallelList(final int size) {
             results = new ArrayList<>(Collections.nCopies(size, null));
-            changed = 0;
-            exceptions = new ArrayList<>();
         }
 
-        private synchronized void updateChanged() {
+        private /*synchronized*/ void updateChanged() {
             changed++;
             if (changed == results.size()) {
                 notify();
