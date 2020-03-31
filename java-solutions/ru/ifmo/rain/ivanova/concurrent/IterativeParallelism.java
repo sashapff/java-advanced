@@ -80,19 +80,24 @@ public class IterativeParallelism implements AdvancedIP {
         }
     }
 
+    private <E, R> List<R> map(final Function<? super E, ? extends R> function,
+                               final List<? extends E> blocks) throws InterruptedException {
+        final List<R> blockAnswers = new ArrayList<>(Collections.nCopies(blocks.size(), null));
+        final List<Thread> workers = IntStream.range(0, blocks.size())
+                .mapToObj(index -> new Thread(() -> blockAnswers.set(index, function.apply(blocks.get(index)))))
+                .collect(Collectors.toList());
+        workers.forEach(Thread::start);
+        joinAllThreads(workers);
+        return blockAnswers;
+    }
+
     private <T, E, A> A run(int threads, final List<? extends T> values,
                             final Function<Stream<? extends T>, E> function,
                             final Function<? super Stream<E>, A> reduce) throws InterruptedException {
         final List<Stream<? extends T>> blocks = split(threads, values);
-        threads = blocks.size();
         final List<E> blockAnswers;
         if (mapper == null) {
-            blockAnswers = new ArrayList<>(Collections.nCopies(threads, null));
-            final List<Thread> workers = IntStream.range(0, threads)
-                    .mapToObj(index -> new Thread(() -> blockAnswers.set(index, function.apply(blocks.get(index)))))
-                    .collect(Collectors.toList());
-            workers.forEach(Thread::start);
-            joinAllThreads(workers);
+            blockAnswers = map(function, blocks);
         } else {
             blockAnswers = mapper.map(function, blocks);
         }
