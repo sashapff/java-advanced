@@ -93,8 +93,8 @@ public class ParallelMapperImpl implements ParallelMapper {
                 wait();
             }
             if (!exceptions.isEmpty()) {
-                final RuntimeException exception = new RuntimeException("Runtime exceptions occur during applying");
-                exceptions.forEach(exception::addSuppressed);
+                final RuntimeException exception = exceptions.get(0);
+                exceptions.subList(1, exceptions.size() - 1).forEach(exception::addSuppressed);
                 throw exception;
             }
             return results;
