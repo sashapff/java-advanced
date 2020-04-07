@@ -42,19 +42,32 @@ public class ParallelMapperImpl implements ParallelMapper {
     private class TasksQueue {
         private final Queue<Task<?, ?>> elements = new ArrayDeque<>();
 
-        synchronized Runnable nextTask() throws InterruptedException {
+        private class Pair {
+            Task task;
+            Runnable runnableTask;
+
+            Pair(Task task, Runnable runnableTask) {
+                this.task = task;
+                this.runnableTask = runnableTask;
+            }
+        }
+
+        Pair waitForTask() throws InterruptedException {
             while (elements.isEmpty()) {
                 wait();
             }
-            Task<?, ?> task = elements.peek();
-            Runnable runnableTask = task.getRunnable();
-            while (runnableTask == null) {
+            Task task = elements.peek();
+            return new Pair(task, task.getRunnable());
+        }
+
+        synchronized Runnable nextTask() throws InterruptedException {
+            Pair pair = waitForTask();
+            while (pair.runnableTask == null) {
                 elements.poll();
-                task = elements.element();
-                runnableTask = task.getRunnable();
+                pair = waitForTask();
             }
-            final Runnable finalRunnableTask = runnableTask;
-            final Task<?, ?> finalTask = task;
+            final Runnable finalRunnableTask = pair.runnableTask;
+            final Task<?, ?> finalTask = pair.task;
             return () -> {
                 finalRunnableTask.run();
                 finalTask.finishRunnable();
