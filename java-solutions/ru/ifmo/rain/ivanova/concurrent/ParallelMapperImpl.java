@@ -46,10 +46,10 @@ public class ParallelMapperImpl implements ParallelMapper {
             while (elements.isEmpty()) {
                 wait();
             }
-            Task<?, ?> task = elements.element();
+            Task<?, ?> task = elements.peek();
             Runnable runnableTask = task.getRunnable();
             while (runnableTask == null) {
-                elements.remove();
+                elements.poll();
                 task = elements.element();
                 runnableTask = task.getRunnable();
             }
@@ -81,12 +81,13 @@ public class ParallelMapperImpl implements ParallelMapper {
 
         Task(final Function<? super T, ? extends R> function, final List<? extends T> list) {
             results = new ArrayList<>(Collections.nCopies(list.size(), null));
-            for (int i = 0; i < list.size(); i++) {
-                int index = i;
+            int index = 0;
+            for (T value : list) {
+                int i = index++;
                 runnableTasks.add(() -> {
                     if (!terminated) {
                         try {
-                            set(index, function.apply(list.get(index)));
+                            set(i, function.apply(value));
                         } catch (RuntimeException e) {
                             addException(e);
                         }
@@ -96,7 +97,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
 
         synchronized Runnable getRunnable() {
-            final Runnable runnable = runnableTasks.remove();
+            final Runnable runnable = runnableTasks.poll();
             started++;
             if (started == results.size()) {
                 return null;
