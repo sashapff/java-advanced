@@ -79,13 +79,17 @@ public class ParallelMapperImpl implements ParallelMapper {
             int index = 0;
             for (T value : list) {
                 int i = index++;
-                runnableTasks.add(() -> {
-                    try {
-                        set(i, function.apply(value));
-                    } catch (RuntimeException e) {
-                        addException(e);
-                    }
-                });
+                runnableTasks.add(() -> applyAndSet(i, value, function));
+            }
+        }
+
+        synchronized void applyAndSet(final int i, T value, final Function<? super T, ? extends R> function) {
+            if (!terminated) {
+                try {
+                    set(i, function.apply(value));
+                } catch (RuntimeException e) {
+                    addException(e);
+                }
             }
         }
 
