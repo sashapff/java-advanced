@@ -50,7 +50,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
 
         synchronized void runNextTask() throws InterruptedException {
-            Runnable runnableTask = waitAndRun();
+            final Runnable runnableTask = waitAndRun();
             if (runnableTask == null) {
                 elements.poll();
                 waitAndRun();
@@ -77,24 +77,24 @@ public class ParallelMapperImpl implements ParallelMapper {
         Task(final Function<? super T, ? extends R> function, final List<? extends T> list) {
             results = new ArrayList<>(Collections.nCopies(list.size(), null));
             int index = 0;
-            for (T value : list) {
-                int i = index++;
+            for (final T value : list) {
+                final int i = index++;
                 runnableTasks.add(() -> applyAndSet(i, value, function));
             }
         }
 
-        synchronized void applyAndSet(final int i, T value, final Function<? super T, ? extends R> function) {
+        synchronized void applyAndSet(final int i, final T value, final Function<? super T, ? extends R> function) {
             if (!terminated) {
                 try {
                     set(i, function.apply(value));
-                } catch (RuntimeException e) {
+                } catch (final RuntimeException e) {
                     addException(e);
                 }
             }
         }
 
         synchronized Runnable getAndRun() {
-            Runnable runnable = runnableTasks.poll();
+            final Runnable runnable = runnableTasks.poll();
             if (runnable != null) {
                 runnable.run();
                 finished++;
@@ -169,7 +169,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         for (int i = 0; i < workers.size(); i++) {
             try {
                 workers.get(i).join();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 i--;
             }
         }
