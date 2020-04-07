@@ -3,6 +3,7 @@ package ru.ifmo.rain.ivanova.concurrent;
 import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -15,8 +16,8 @@ import java.util.stream.IntStream;
  */
 public class ParallelMapperImpl implements ParallelMapper {
     private final List<Thread> workers;
-    private final ParallelQueue<Runnable> queue;
-    private boolean closed = false;
+    private final TasksQueue queue = new TasksQueue();
+    private volatile boolean closed = false;
 
     /**
      * Thread-number constructor. Create implementation of {@code ParallelMapper} with {@code threads} threads.
@@ -24,11 +25,10 @@ public class ParallelMapperImpl implements ParallelMapper {
      * @param threads number of available threads.
      */
     public ParallelMapperImpl(final int threads) {
-        queue = new ParallelQueue<>();
         final Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
-                    queue.poll().run();
+                    queue.nextTask().run();
                 }
             } catch (final InterruptedException ignored) {
             } finally {
@@ -39,51 +39,101 @@ public class ParallelMapperImpl implements ParallelMapper {
         workers.forEach(Thread::start);
     }
 
-    private class ParallelQueue<T> {
-        private final Queue<T> elements = new ArrayDeque<>();
+    private class TasksQueue {
+        private final Queue<Task<?, ?>> elements = new ArrayDeque<>();
 
-        synchronized T poll() throws InterruptedException {
+        synchronized Runnable nextTask() throws InterruptedException {
             while (elements.isEmpty()) {
                 wait();
             }
-            return elements.poll();
+            Task<?, ?> task = elements.element();
+            Runnable runnableTask = task.getRunnable();
+            while (runnableTask == null) {
+                elements.remove();
+                task = elements.element();
+                runnableTask = task.getRunnable();
+            }
+            final Runnable finalRunnableTask = runnableTask;
+            final Task<?, ?> finalTask = task;
+            return () -> {
+                finalRunnableTask.run();
+                finalTask.finishRunnable();
+            };
         }
 
-        synchronized void add(final T task) {
+        synchronized void add(final Task<?, ?> task) {
             elements.add(task);
             notify();
         }
+
+        synchronized void forEach(final Consumer<? super Task<?, ?>> consumer) {
+            elements.forEach(consumer);
+        }
     }
 
-    private class ParallelList<T> {
-        private final List<T> results;
+    private class Task<T, R> {
+        private final Queue<Runnable> runnableTasks = new ArrayDeque<>();
+        private final List<R> results;
         private final List<RuntimeException> exceptions = new ArrayList<>();
-        private int changed;
+        private int started = 0;
+        private int finished = 0;
+        private volatile boolean terminated = false;
 
-        ParallelList(final int size) {
-            results = new ArrayList<>(Collections.nCopies(size, null));
-        }
-
-        private /*synchronized*/ void updateChanged() {
-            changed++;
-            if (changed == results.size()) {
-                notify();
+        Task(final Function<? super T, ? extends R> function, final List<? extends T> list) {
+            results = new ArrayList<>(Collections.nCopies(list.size(), null));
+            for (int i = 0; i < list.size(); i++) {
+                int index = i;
+                runnableTasks.add(() -> {
+                    if (!terminated) {
+                        try {
+                            set(index, function.apply(list.get(index)));
+                        } catch (RuntimeException e) {
+                            addException(e);
+                        }
+                    }
+                });
             }
         }
 
-        synchronized void set(final int index, final T result) {
-            results.set(index, result);
-            updateChanged();
+        synchronized Runnable getRunnable() {
+            final Runnable runnable = runnableTasks.remove();
+            started++;
+            if (started == results.size()) {
+                return null;
+            }
+            return runnable;
+        }
+
+        synchronized void terminate() {
+            terminated = true;
+            notify();
+        }
+
+        synchronized void finishRunnable() {
+            finished++;
+            if (finished == results.size()) {
+                terminate();
+            }
+        }
+
+        synchronized void set(final int index, final R result) {
+            if (!terminated) {
+                results.set(index, result);
+            }
         }
 
         synchronized void addException(final RuntimeException element) {
-            exceptions.add(element);
-            updateChanged();
+            if (!terminated) {
+                exceptions.add(element);
+            }
         }
 
-        synchronized List<T> getList() throws InterruptedException {
-            while (changed < results.size() && !closed) {
+        synchronized List<R> getResult() throws InterruptedException {
+            while (!terminated && !closed) {
                 wait();
+            }
+            if (closed) {
+                terminate();
             }
             if (!exceptions.isEmpty()) {
                 final RuntimeException exception = exceptions.get(0);
@@ -108,21 +158,11 @@ public class ParallelMapperImpl implements ParallelMapper {
     @Override
     public <T, R> List<R> map(final Function<? super T, ? extends R> function,
                               final List<? extends T> list) throws InterruptedException {
-        final ParallelList<R> collector = new ParallelList<>(list.size());
-        int index = 0;
-        for (final T value : list) {
-            final int i = index++;
-            synchronized (queue) {
-                queue.add(() -> {
-                    try {
-                        collector.set(i, function.apply(value));
-                    } catch (final RuntimeException e) {
-                        collector.addException(e);
-                    }
-                });
-            }
+        final Task<T, R> task = new Task<>(function, list);
+        synchronized (queue) {
+            queue.add(task);
         }
-        return collector.getList();
+        return task.getResult();
     }
 
     /**
@@ -132,11 +172,13 @@ public class ParallelMapperImpl implements ParallelMapper {
     public void close() {
         closed = true;
         workers.forEach(Thread::interrupt);
-        workers.forEach(worker -> {
+        queue.forEach(Task::terminate);
+        for (int i = 0; i < workers.size(); i++) {
             try {
-                worker.join();
-            } catch (final InterruptedException ignored) {
+                workers.get(i).join();
+            } catch (InterruptedException e) {
+                i--;
             }
-        });
+        }
     }
 }
