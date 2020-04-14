@@ -153,12 +153,12 @@ public class ParallelMapperImpl implements ParallelMapper {
                               final List<? extends T> list) throws InterruptedException {
         final Task<T, R> task;
         synchronized (this) {
-            if (!closed) {
-                task = new Task<>(function, list);
-                queue.add(task);
-            } else {
+            if (closed) {
                 return null;
             }
+
+            task = new Task<>(function, list);
+            queue.add(task);
         }
         return task.getResult();
     }
