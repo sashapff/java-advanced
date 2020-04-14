@@ -28,7 +28,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         final Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
-                    queue.runNextTask();
+                    queue.getNext().run();
                 }
             } catch (final InterruptedException ignored) {
             } finally {
@@ -46,15 +46,16 @@ public class ParallelMapperImpl implements ParallelMapper {
             while (elements.isEmpty()) {
                 wait();
             }
-            return elements.peek().getAndRun();
+            return elements.peek().getRunnableTask();
         }
 
-        synchronized void runNextTask() throws InterruptedException {
-            final Runnable runnableTask = waitAndRun();
+        synchronized Runnable getNext() throws InterruptedException {
+            Runnable runnableTask = waitAndRun();
             if (runnableTask == null) {
                 elements.poll();
-                waitAndRun();
+                runnableTask = waitAndRun();
             }
+            return runnableTask;
         }
 
         synchronized void add(final Task<?, ?> task) {
@@ -83,31 +84,32 @@ public class ParallelMapperImpl implements ParallelMapper {
             }
         }
 
+        synchronized void terminate() {
+            terminated = true;
+            notifyAll();
+        }
+
+        synchronized void finish() {
+            finished++;
+            if (finished == results.size()) {
+                terminate();
+            }
+        }
+
         synchronized void applyAndSet(final int i, final T value, final Function<? super T, ? extends R> function) {
             if (!terminated) {
                 try {
                     set(i, function.apply(value));
                 } catch (final RuntimeException e) {
                     addException(e);
+                } finally {
+                    finish();
                 }
             }
         }
 
-        synchronized Runnable getAndRun() {
-            final Runnable runnable = runnableTasks.poll();
-            if (runnable != null) {
-                runnable.run();
-                finished++;
-                if (finished == results.size()) {
-                    terminate();
-                }
-            }
-            return runnable;
-        }
-
-        synchronized void terminate() {
-            terminated = true;
-            notify();
+        synchronized Runnable getRunnableTask() {
+            return runnableTasks.poll();
         }
 
         synchronized void set(final int index, final R result) {
@@ -149,10 +151,13 @@ public class ParallelMapperImpl implements ParallelMapper {
     @Override
     public <T, R> List<R> map(final Function<? super T, ? extends R> function,
                               final List<? extends T> list) throws InterruptedException {
-        final Task<T, R> task = new Task<>(function, list);
+        final Task<T, R> task;
         synchronized (this) {
             if (!closed) {
+                task = new Task<>(function, list);
                 queue.add(task);
+            } else {
+                return null;
             }
         }
         return task.getResult();
@@ -163,7 +168,9 @@ public class ParallelMapperImpl implements ParallelMapper {
      */
     @Override
     public void close() {
-        closed = true;
+        synchronized (this) {
+            closed = true;
+        }
         workers.forEach(Thread::interrupt);
         queue.forEach(Task::terminate);
         for (int i = 0; i < workers.size(); i++) {
