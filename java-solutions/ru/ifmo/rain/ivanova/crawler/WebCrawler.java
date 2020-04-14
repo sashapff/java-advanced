@@ -138,7 +138,7 @@ public class WebCrawler implements Crawler {
             phaser.register();
             while (!queueToTake.isEmpty()) {
                 String url = queueToTake.poll();
-                if (addedUrls.add(url)) {
+                if (!addedUrls.add(url)) {
                     download(url, d);
                 }
             }
