@@ -17,9 +17,8 @@ public class HelloUDPServer implements HelloServer {
     private ExecutorService executorService;
     private int receiveBufferSize;
 
-    private void task() {
+    private void task(DatagramPacket packet) {
         while (!datagramSocket.isClosed()) {
-            final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
             try {
                 datagramSocket.receive(packet);
                 String requestMessage = HelloUDPUtills.getString(packet);
@@ -42,8 +41,9 @@ public class HelloUDPServer implements HelloServer {
         try {
             datagramSocket = new DatagramSocket(port);
             receiveBufferSize = datagramSocket.getReceiveBufferSize();
+            final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
             for (int i = 0; i < threads; i++) {
-                executorService.submit(this::task);
+                executorService.submit(() -> task(packet));
             }
         } catch (SocketException e) {
             datagramSocket.close();
