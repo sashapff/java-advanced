@@ -17,6 +17,7 @@ public class WebCrawler implements Crawler {
     private final ExecutorService downloaders;
     private final ExecutorService extractors;
     private final int perHost;
+    private final static int TIMEOUT = 0;
 
     /**
      * Constructor to initialize with {@code Downloader}, number of downloading pages,
@@ -27,7 +28,7 @@ public class WebCrawler implements Crawler {
      * @param extractors  number of processing pages.
      * @param perHost     number of downloading pages per one host.
      */
-    public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
+    public WebCrawler(final Downloader downloader, final int downloaders, final int extractors, final int perHost) {
         this.downloader = downloader;
         this.downloaders = Executors.newFixedThreadPool(downloaders);
         this.extractors = Executors.newFixedThreadPool(extractors);
@@ -49,13 +50,13 @@ public class WebCrawler implements Crawler {
         }
 
         synchronized private void run() {
-            Runnable task = tasks.poll();
+            final Runnable task = tasks.poll();
             if (task != null) {
                 readyToRun--;
                 downloaders.submit(() -> {
                     try {
                         task.run();
-                    } catch (Exception ignored) {
+                    } catch (final Exception ignored) {
                     } finally {
                         finish();
                         ready();
@@ -64,7 +65,7 @@ public class WebCrawler implements Crawler {
             }
         }
 
-        synchronized void submit(Runnable task) {
+        synchronized void submit(final Runnable task) {
             tasks.add(task);
             ready();
         }
@@ -81,91 +82,81 @@ public class WebCrawler implements Crawler {
         private ConcurrentLinkedQueue<String> queueToTake = new ConcurrentLinkedQueue<>();
         private ConcurrentLinkedQueue<String> queueToAdd = new ConcurrentLinkedQueue<>();
 
-        private String getHost(String url) {
+        private String getHost(final String url) {
             try {
                 return URLUtils.getHost(url);
-            } catch (MalformedURLException e) {
+            } catch (final MalformedURLException e) {
                 errors.put(url, e);
                 return null;
             }
         }
 
-        private void download(String url, final int d) {
-            String host = getHost(url);
-            if (host != null) {
-                HostDownloader hostDownloader;
-                if ((hostDownloader = addedHosts.get(host)) == null) {
-                    addedHosts.put(host, hostDownloader = new HostDownloader());
-                }
-                phaser.register();
-                hostDownloader.submit(() -> {
-                    try {
-                        final Document document = downloader.download(url);
-                        if (depth - d > 1) {
-                            phaser.register();
-                            extractors.submit(() -> {
-                                try {
-                                    queueToAdd.addAll(document.extractLinks());
-                                } catch (IOException e) {
-                                    errors.put(url, e);
-                                } finally {
-                                    phaser.arrive();
-                                }
-                            });
-                        }
-                        downloaded.add(url);
-                    } catch (IOException e) {
-                        errors.put(url, e);
-                    } finally {
-                        phaser.arrive();
-                    }
-                });
+        private void download(final String url, final int d) {
+            final String host = getHost(url);
+            if (host == null) {
+                return;
             }
+            phaser.register();
+            addedHosts.computeIfAbsent(host, unused -> new HostDownloader())
+                    .submit(() -> {
+                        try {
+                            final Document document = downloader.download(url);
+                            if (depth - d > 1) {
+                                phaser.register();
+                                extractors.submit(() -> {
+                                    try {
+                                        queueToAdd.addAll(document.extractLinks());
+                                    } catch (final IOException e) {
+                                        errors.put(url, e);
+                                    } finally {
+                                        phaser.arrive();
+                                    }
+                                });
+                            }
+                            downloaded.add(url);
+                        } catch (final IOException e) {
+                            errors.put(url, e);
+                        } finally {
+                            phaser.arrive();
+                        }
+                    });
         }
 
         void swapQueues() {
-            ConcurrentLinkedQueue<String> tmp = queueToAdd;
+            final ConcurrentLinkedQueue<String> tmp = queueToAdd;
             queueToAdd = queueToTake;
             queueToTake = tmp;
         }
 
-        void bfs(int d) {
+        void bfs(final int d) {
             if (d == depth) {
                 return;
             }
             swapQueues();
             phaser = new Phaser();
             phaser.register();
-            while (!queueToTake.isEmpty()) {
-                String url = queueToTake.poll();
-                if (!addedUrls.add(url)) {
-                    download(url, d);
-                }
-            }
+            queueToTake.stream()
+                    .filter(addedUrls::add)
+                    .forEach(url -> download(url, d));
+            queueToTake.clear();
             phaser.arriveAndAwaitAdvance();
             bfs(d + 1);
         }
 
-        WebDownloader(int depth) {
+        WebDownloader(final int depth) {
             this.depth = depth;
         }
 
-        void run(String url) {
+        Result run(final String url) {
             queueToAdd.add(url);
             bfs(0);
-        }
-
-        Result result() {
             return new Result(downloaded, errors);
         }
-
     }
 
     @Override
-    public Result download(String url, int depth) {
-        WebDownloader webDownloader = new WebDownloader(depth);
-        webDownloader.run(url);
-        return webDownloader.result();
+    public Result download(final String url, final int depth) {
+        return new WebDownloader(depth).run(url);
     }
 
     @Override
@@ -173,14 +164,14 @@ public class WebCrawler implements Crawler {
         extractors.shutdown();
         downloaders.shutdown();
         try {
-            extractors.awaitTermination(0, TimeUnit.SECONDS);
-            downloaders.awaitTermination(0, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+            extractors.awaitTermination(TIMEOUT, TimeUnit.SECONDS);
+            downloaders.awaitTermination(TIMEOUT, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
             System.err.println("Can't terminate");
         }
     }
 
-    private static int parseArgument(String[] args, int index) {
+    private static int parseArgument(final String[] args, final int index) {
         return args.length <= index ? 1 : Integer.parseInt(args[index]);
     }
 
@@ -189,16 +180,16 @@ public class WebCrawler implements Crawler {
      *
      * @param args arguments to create {@code WebCrawler}.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args == null || args.length == 0 || Arrays.stream(args).anyMatch(Objects::isNull)) {
             System.err.println("Incorrect arguments");
             return;
         }
-        int depth = parseArgument(args, 1);
-        try (Crawler crawler = new WebCrawler(new CachingDownloader(), depth,
+        final int depth = parseArgument(args, 1);
+        try (final Crawler crawler = new WebCrawler(new CachingDownloader(), depth,
                 parseArgument(args, 2), parseArgument(args, 3))) {
             crawler.download(args[0], depth);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             System.err.println("Can't initialize CachingDownloader");
         }
     }

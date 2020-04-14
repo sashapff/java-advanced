@@ -95,12 +95,7 @@ public class IterativeParallelism implements AdvancedIP {
                             final Function<Stream<? extends T>, E> function,
                             final Function<? super Stream<E>, A> reduce) throws InterruptedException {
         final List<Stream<? extends T>> blocks = split(threads, values);
-        final List<E> blockAnswers;
-        if (mapper == null) {
-            blockAnswers = map(function, blocks);
-        } else {
-            blockAnswers = mapper.map(function, blocks);
-        }
+        final List<E> blockAnswers = mapper == null ? map(function, blocks) : mapper.map(function, blocks);
         return reduce.apply(blockAnswers.stream());
     }
 

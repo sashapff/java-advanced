@@ -96,15 +96,18 @@ public class ParallelMapperImpl implements ParallelMapper {
             }
         }
 
-        synchronized void applyAndSet(final int i, final T value, final Function<? super T, ? extends R> function) {
-            if (!terminated) {
-                try {
-                    set(i, function.apply(value));
-                } catch (final RuntimeException e) {
-                    addException(e);
-                } finally {
-                    finish();
+        void applyAndSet(final int i, final T value, final Function<? super T, ? extends R> function) {
+            synchronized (this) {
+                if (terminated) {
+                    return;
                 }
+            }
+            try {
+                set(i, function.apply(value));
+            } catch (final RuntimeException e) {
+                addException(e);
+            } finally {
+                finish();
             }
         }
 
@@ -153,12 +156,12 @@ public class ParallelMapperImpl implements ParallelMapper {
                               final List<? extends T> list) throws InterruptedException {
         final Task<T, R> task;
         synchronized (this) {
-            if (!closed) {
-                task = new Task<>(function, list);
-                queue.add(task);
-            } else {
+            if (closed) {
                 return null;
             }
+
+            task = new Task<>(function, list);
+            queue.add(task);
         }
         return task.getResult();
     }
