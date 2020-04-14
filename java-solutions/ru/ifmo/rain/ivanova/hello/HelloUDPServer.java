@@ -46,8 +46,6 @@ public class HelloUDPServer implements HelloServer {
                 executorService.submit(this::task);
             }
         } catch (final SocketException e) {
-            // :NOTE: NPE
-            datagramSocket.close();
             System.out.println("Can't create DatagramSocket " + e.getMessage());
         }
     }

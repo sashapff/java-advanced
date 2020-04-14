@@ -91,7 +91,6 @@ public class WebCrawler implements Crawler {
         }
 
         private void download(String url, final int d) {
-            addedUrls.add(url);
             String host = getHost(url);
             if (host != null) {
                 HostDownloader hostDownloader;
@@ -139,7 +138,7 @@ public class WebCrawler implements Crawler {
             phaser.register();
             while (!queueToTake.isEmpty()) {
                 String url = queueToTake.poll();
-                if (!addedUrls.contains(url)) {
+                if (addedUrls.add(url)) {
                     download(url, d);
                 }
             }
