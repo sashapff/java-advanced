@@ -147,8 +147,11 @@ public class WebCrawler implements Crawler {
             bfs(d + 1);
         }
 
-        WebDownloader(String url, int depth) {
+        WebDownloader(int depth) {
             this.depth = depth;
+        }
+
+        void run(String url) {
             queueToAdd.add(url);
             bfs(0);
         }
@@ -161,7 +164,9 @@ public class WebCrawler implements Crawler {
 
     @Override
     public Result download(String url, int depth) {
-        return new WebDownloader(url, depth).result();
+        WebDownloader webDownloader = new WebDownloader(depth);
+        webDownloader.run(url);
+        return webDownloader.result();
     }
 
     @Override
