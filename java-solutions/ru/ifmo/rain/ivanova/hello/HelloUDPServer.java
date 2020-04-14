@@ -18,26 +18,26 @@ public class HelloUDPServer implements HelloServer {
     private int receiveBufferSize;
 
     private void task() {
-        DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
+        final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
         while (!datagramSocket.isClosed()) {
             try {
                 datagramSocket.receive(packet);
-                String requestMessage = HelloUDPUtills.getString(packet);
-                String responseMessage = "Hello, " + requestMessage;
+                final String requestMessage = HelloUDPUtills.getString(packet);
+                final String responseMessage = "Hello, " + requestMessage;
                 packet.setData(HelloUDPUtills.getBytes(responseMessage));
                 try {
                     datagramSocket.send(packet);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     System.out.println("Cant't send DatagramPacket " + e.getMessage());
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 System.out.println("Can't receive request from DatagramSocket " + e.getMessage());
             }
         }
     }
 
     @Override
-    public void start(int port, int threads) {
+    public void start(final int port, final int threads) {
         executorService = Executors.newFixedThreadPool(threads);
         try {
             datagramSocket = new DatagramSocket(port);
@@ -45,7 +45,8 @@ public class HelloUDPServer implements HelloServer {
             for (int i = 0; i < threads; i++) {
                 executorService.submit(this::task);
             }
-        } catch (SocketException e) {
+        } catch (final SocketException e) {
+            // :NOTE: NPE
             datagramSocket.close();
             System.out.println("Can't create DatagramSocket " + e.getMessage());
         }
@@ -57,12 +58,12 @@ public class HelloUDPServer implements HelloServer {
         executorService.shutdown();
         try {
             executorService.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             System.out.println("Can't terminate ExecutorService " + e.getMessage());
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args == null || args.length != 2 || Arrays.stream(args).anyMatch(Objects::isNull)) {
             System.out.println("Incorrect arguments");
             return;
