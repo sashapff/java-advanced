@@ -18,8 +18,8 @@ public class HelloUDPServer implements HelloServer {
     private int receiveBufferSize;
 
     private void task() {
+        DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
         while (!datagramSocket.isClosed()) {
-            final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
             try {
                 datagramSocket.receive(packet);
                 String requestMessage = HelloUDPUtills.getString(packet);
