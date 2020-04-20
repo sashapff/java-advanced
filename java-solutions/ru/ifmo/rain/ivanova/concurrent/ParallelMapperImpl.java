@@ -88,7 +88,7 @@ public class ParallelMapperImpl implements ParallelMapper {
 
         synchronized void terminate() {
             terminated = true;
-            notifyAll();
+            notify();
         }
 
         synchronized void finish() {
