@@ -17,7 +17,7 @@ import java.util.stream.IntStream;
 public class ParallelMapperImpl implements ParallelMapper {
     private final List<Thread> workers;
     private final TasksQueue queue = new TasksQueue();
-    private volatile boolean closed = false;
+    private boolean closed = false;
 
     /**
      * Thread-number constructor. Create implementation of {@code ParallelMapper} with {@code threads} threads.
@@ -42,7 +42,7 @@ public class ParallelMapperImpl implements ParallelMapper {
     private class TasksQueue {
         private final Queue<Task<?, ?>> elements = new ArrayDeque<>();
 
-        Runnable waitAndRun() throws InterruptedException {
+        synchronized Runnable waitAndRun() throws InterruptedException {
             while (elements.isEmpty()) {
                 wait();
             }
@@ -51,7 +51,7 @@ public class ParallelMapperImpl implements ParallelMapper {
 
         synchronized Runnable getNext() throws InterruptedException {
             Runnable runnableTask = waitAndRun();
-            if (runnableTask == null) {
+            while (runnableTask == null) {
                 elements.poll();
                 runnableTask = waitAndRun();
             }
@@ -60,7 +60,7 @@ public class ParallelMapperImpl implements ParallelMapper {
 
         synchronized void add(final Task<?, ?> task) {
             elements.add(task);
-            notify();
+            notifyAll();
         }
 
         synchronized void forEach(final Consumer<? super Task<?, ?>> consumer) {
@@ -74,13 +74,15 @@ public class ParallelMapperImpl implements ParallelMapper {
         private final List<RuntimeException> exceptions = new ArrayList<>();
         private int finished = 0;
         private boolean terminated = false;
+        final Function<? super T, ? extends R> function;
 
         Task(final Function<? super T, ? extends R> function, final List<? extends T> list) {
             results = new ArrayList<>(Collections.nCopies(list.size(), null));
+            this.function = function;
             int index = 0;
             for (final T value : list) {
                 final int i = index++;
-                runnableTasks.add(() -> applyAndSet(i, value, function));
+                runnableTasks.add(() -> applyAndSet(i, value));
             }
         }
 
@@ -96,7 +98,7 @@ public class ParallelMapperImpl implements ParallelMapper {
             }
         }
 
-        void applyAndSet(final int i, final T value, final Function<? super T, ? extends R> function) {
+        void applyAndSet(final int i, final T value) {
             synchronized (this) {
                 if (terminated) {
                     return;
