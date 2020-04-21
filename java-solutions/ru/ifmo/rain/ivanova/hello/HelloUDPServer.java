@@ -55,7 +55,7 @@ public class HelloUDPServer implements HelloServer {
         datagramSocket.close();
         executorService.shutdown();
         try {
-            executorService.awaitTermination(1, TimeUnit.SECONDS);
+            executorService.awaitTermination(100, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
             System.out.println("Can't terminate ExecutorService " + e.getMessage());
         }

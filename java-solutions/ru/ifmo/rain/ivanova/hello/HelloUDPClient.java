@@ -3,7 +3,10 @@ package ru.ifmo.rain.ivanova.hello;
 import info.kgeorgiy.java.advanced.hello.HelloClient;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -14,24 +17,24 @@ public class HelloUDPClient implements HelloClient {
 
     private void task(String host, int port, String prefix, int thread, int requests) {
         try (DatagramSocket datagramSocket = new DatagramSocket()) {
-            datagramSocket.setSoTimeout(28);
-            int sendBufferSize = datagramSocket.getSendBufferSize();
+            datagramSocket.setSoTimeout(100);
             int receiveBufferSize = datagramSocket.getReceiveBufferSize();
             try {
-                DatagramPacket requestPacket
-                        = HelloUDPUtills.newDatagramPacket(sendBufferSize, host, port);
-                DatagramPacket responsePacket = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
+                DatagramPacket packet
+                        = HelloUDPUtills.newDatagramPacket(receiveBufferSize, host, port);
                 for (int i = 0; i < requests; i++) {
                     String requestMessage = prefix + Integer.toString(thread) + "_" + Integer.toString(i);
+                    byte[] request = HelloUDPUtills.getBytes(requestMessage);
                     String responseMessage = "";
                     System.err.println(requestMessage);
                     boolean success = false;
                     while (!success && !datagramSocket.isClosed()) {
-                        requestPacket.setData(HelloUDPUtills.getBytes(requestMessage));
+                        packet.setData(request, 0, request.length);
                         try {
-                            datagramSocket.send(requestPacket);
-                            datagramSocket.receive(responsePacket);
-                            responseMessage = HelloUDPUtills.getString(responsePacket);
+                            datagramSocket.send(packet);
+                            packet.setData(new byte[receiveBufferSize]);
+                            datagramSocket.receive(packet);
+                            responseMessage = HelloUDPUtills.getString(packet);
                             success = responseMessage.matches(
                                     "[\\D]*" + Integer.toString(thread) +
                                             "[\\D]*" + Integer.toString(i) + "[\\D]*");
@@ -58,7 +61,7 @@ public class HelloUDPClient implements HelloClient {
         }
         executorService.shutdown();
         try {
-            executorService.awaitTermination(threads * requests , TimeUnit.SECONDS);
+            executorService.awaitTermination(10 * threads * requests, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             System.out.println("Can't terminate ExecutorService " + e.getMessage());
         }
