@@ -156,13 +156,11 @@ public class ParallelMapperImpl implements ParallelMapper {
     @Override
     public <T, R> List<R> map(final Function<? super T, ? extends R> function,
                               final List<? extends T> list) throws InterruptedException {
-        final Task<T, R> task;
+        final Task<T, R> task = new Task<>(function, list);
         synchronized (this) {
             if (closed) {
                 return null;
             }
-
-            task = new Task<>(function, list);
             queue.add(task);
         }
         return task.getResult();
