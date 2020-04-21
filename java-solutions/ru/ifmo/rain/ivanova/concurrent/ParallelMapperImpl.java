@@ -179,9 +179,6 @@ public class ParallelMapperImpl implements ParallelMapper {
                 workers.get(index).join();
             } catch (final InterruptedException e) {
                 for (int i = index; i < workers.size(); i++) {
-                    workers.get(i).interrupt();
-                }
-                for (int i = index; i < workers.size(); i++) {
                     try {
                         workers.get(i).join();
                     } catch (final InterruptedException e1) {

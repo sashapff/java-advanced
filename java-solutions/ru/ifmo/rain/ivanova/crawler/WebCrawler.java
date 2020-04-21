@@ -18,7 +18,7 @@ public class WebCrawler implements Crawler {
     private final ExecutorService downloaders;
     private final ExecutorService extractors;
     private final int perHost;
-    private final static int TIMEOUT = 0;
+    private final static int TIMEOUT = 10;
 
     /**
      * Constructor to initialize with {@code Downloader}, number of downloading pages,

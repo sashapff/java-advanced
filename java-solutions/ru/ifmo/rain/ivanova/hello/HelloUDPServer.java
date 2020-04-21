@@ -19,12 +19,13 @@ public class HelloUDPServer implements HelloServer {
 
     private void task() {
         final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
+        byte[] request = new byte[receiveBufferSize];
         while (!datagramSocket.isClosed()) {
             try {
+                packet.setData(request, 0, request.length);
                 datagramSocket.receive(packet);
                 final String requestMessage = HelloUDPUtills.getString(packet);
                 final byte[] response = HelloUDPUtills.getBytes("Hello, " + requestMessage);
-                // :NOTE: Уменьшение пакета
                 packet.setData(response, 0, response.length);
                 try {
                     datagramSocket.send(packet);
@@ -67,6 +68,8 @@ public class HelloUDPServer implements HelloServer {
             System.out.println("Incorrect arguments");
             return;
         }
-        new HelloUDPServer().start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+        HelloUDPServer server = new HelloUDPServer();
+        server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+        server.close();
     }
 }
