@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.IntStream;
 
 /**
  * @author sasha.pff
@@ -69,7 +70,6 @@ public class WebCrawler implements Crawler {
             tasks.add(task);
             ready();
         }
-
     }
 
     private class WebDownloader {
@@ -77,7 +77,6 @@ public class WebCrawler implements Crawler {
         private final ConcurrentMap<String, IOException> errors = new ConcurrentHashMap<>();
         private final Set<String> addedUrls = ConcurrentHashMap.newKeySet();
         private final ConcurrentMap<String, HostDownloader> addedHosts = new ConcurrentHashMap<>();
-        private final int depth;
         private Phaser phaser;
         private ConcurrentLinkedQueue<String> queueToTake = new ConcurrentLinkedQueue<>();
         private ConcurrentLinkedQueue<String> queueToAdd = new ConcurrentLinkedQueue<>();
@@ -96,30 +95,30 @@ public class WebCrawler implements Crawler {
             if (host == null) {
                 return;
             }
+
             phaser.register();
-            addedHosts.computeIfAbsent(host, unused -> new HostDownloader())
-                    .submit(() -> {
-                        try {
-                            final Document document = downloader.download(url);
-                            if (depth - d > 1) {
-                                phaser.register();
-                                extractors.submit(() -> {
-                                    try {
-                                        queueToAdd.addAll(document.extractLinks());
-                                    } catch (final IOException e) {
-                                        errors.put(url, e);
-                                    } finally {
-                                        phaser.arrive();
-                                    }
-                                });
+            addedHosts.computeIfAbsent(host, unused -> new HostDownloader()).submit(() -> {
+                try {
+                    final Document document = downloader.download(url);
+                    if (d > 1) {
+                        phaser.register();
+                        extractors.submit(() -> {
+                            try {
+                                queueToAdd.addAll(document.extractLinks());
+                            } catch (final IOException e) {
+                                errors.put(url, e);
+                            } finally {
+                                phaser.arrive();
                             }
-                            downloaded.add(url);
-                        } catch (final IOException e) {
-                            errors.put(url, e);
-                        } finally {
-                            phaser.arrive();
-                        }
-                    });
+                        });
+                    }
+                    downloaded.add(url);
+                } catch (final IOException e) {
+                    errors.put(url, e);
+                } finally {
+                    phaser.arrive();
+                }
+            });
         }
 
         void swapQueues() {
@@ -128,35 +127,25 @@ public class WebCrawler implements Crawler {
             queueToTake = tmp;
         }
 
-        void bfs(final int d) {
-            if (d == depth) {
-                return;
-            }
-            swapQueues();
-            phaser = new Phaser();
-            phaser.register();
-            queueToTake.stream()
-                    .filter(addedUrls::add)
-                    .forEach(url -> download(url, d));
-            queueToTake.clear();
-            phaser.arriveAndAwaitAdvance();
-            bfs(d + 1);
-        }
-
-        WebDownloader(final int depth) {
-            this.depth = depth;
-        }
-
-        Result run(final String url) {
+        Result run(final String url, final int depth) {
             queueToAdd.add(url);
-            bfs(0);
+            IntStream.range(0, depth).forEachOrdered(d -> {
+                swapQueues();
+                phaser = new Phaser();
+                phaser.register();
+                queueToTake.stream()
+                        .filter(addedUrls::add)
+                        .forEach(url1 -> download(url1, d));
+                queueToTake.clear();
+                phaser.arriveAndAwaitAdvance();
+            });
             return new Result(downloaded, errors);
         }
     }
 
     @Override
     public Result download(final String url, final int depth) {
-        return new WebDownloader(depth).run(url);
+        return new WebDownloader().run(url, depth);
     }
 
     @Override
