@@ -28,7 +28,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         final Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
-                    Runnable runnable = queue.getNext();
+                    final Runnable runnable = queue.getNext();
                     if (runnable != null) {
                         runnable.run();
                     }
@@ -53,7 +53,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
 
         synchronized Runnable getNext() throws InterruptedException {
-            Runnable runnableTask = waitAndGet();
+            final Runnable runnableTask = waitAndGet();
             if (runnableTask == null) {
                 elements.poll();
             }
@@ -171,6 +171,7 @@ public class ParallelMapperImpl implements ParallelMapper {
         synchronized (this) {
             closed = true;
         }
+
         workers.forEach(Thread::interrupt);
         queue.forEach(Task::terminate);
         for (int index = 0; index < workers.size(); index++) {
