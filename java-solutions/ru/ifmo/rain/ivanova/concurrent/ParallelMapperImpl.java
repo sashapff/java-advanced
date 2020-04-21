@@ -105,8 +105,6 @@ public class ParallelMapperImpl implements ParallelMapper {
                 set(i, function.apply(value));
             } catch (final RuntimeException e) {
                 addException(e);
-            } finally {
-                finish();
             }
         }
 
@@ -118,12 +116,14 @@ public class ParallelMapperImpl implements ParallelMapper {
             if (!terminated) {
                 results.set(index, result);
             }
+            finish();
         }
 
         synchronized void addException(final RuntimeException element) {
             if (!terminated) {
                 exceptions.add(element);
             }
+            finish();
         }
 
         synchronized List<R> getResult() throws InterruptedException {

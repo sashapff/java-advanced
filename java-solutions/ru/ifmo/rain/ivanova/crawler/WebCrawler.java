@@ -135,7 +135,7 @@ public class WebCrawler implements Crawler {
                 phaser.register();
                 queueToTake.stream()
                         .filter(addedUrls::add)
-                        .forEach(url1 -> download(url1, d));
+                        .forEach(url1 -> download(url1, depth - d));
                 queueToTake.clear();
                 phaser.arriveAndAwaitAdvance();
             });
