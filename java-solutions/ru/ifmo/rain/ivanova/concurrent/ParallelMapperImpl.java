@@ -28,7 +28,10 @@ public class ParallelMapperImpl implements ParallelMapper {
         final Runnable startTask = () -> {
             try {
                 while (!Thread.interrupted()) {
-                    queue.getNext().run();
+                    Runnable runnable = queue.getNext();
+                    if (runnable != null) {
+                        runnable.run();
+                    }
                 }
             } catch (final InterruptedException ignored) {
             } finally {
@@ -42,7 +45,7 @@ public class ParallelMapperImpl implements ParallelMapper {
     private class TasksQueue {
         private final Queue<Task<?, ?>> elements = new ArrayDeque<>();
 
-        synchronized Runnable waitAndRun() throws InterruptedException {
+        synchronized Runnable waitAndGet() throws InterruptedException {
             while (elements.isEmpty()) {
                 wait();
             }
@@ -50,10 +53,9 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
 
         synchronized Runnable getNext() throws InterruptedException {
-            Runnable runnableTask = waitAndRun();
-            while (runnableTask == null) {
+            Runnable runnableTask = waitAndGet();
+            if (runnableTask == null) {
                 elements.poll();
-                runnableTask = waitAndRun();
             }
             return runnableTask;
         }
