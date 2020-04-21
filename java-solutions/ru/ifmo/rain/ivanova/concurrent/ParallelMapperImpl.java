@@ -177,8 +177,6 @@ public class ParallelMapperImpl implements ParallelMapper {
             try {
                 workers.get(index).join();
             } catch (final InterruptedException e) {
-                final InterruptedException exception = new InterruptedException();
-                exception.addSuppressed(e);
                 for (int i = index; i < workers.size(); i++) {
                     workers.get(i).interrupt();
                 }
