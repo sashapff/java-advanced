@@ -23,9 +23,8 @@ public class HelloUDPServer implements HelloServer {
             try {
                 datagramSocket.receive(packet);
                 final String requestMessage = HelloUDPUtills.getString(packet);
-                final String responseMessage = "Hello, " + requestMessage;
-                packet.setLength(HelloUDPUtills.getBytes(responseMessage).length);
-                packet.setData(HelloUDPUtills.getBytes(responseMessage));
+                byte[] response = HelloUDPUtills.getBytes("Hello, " + requestMessage);
+                packet.setData(response, 0, response.length);
                 try {
                     datagramSocket.send(packet);
                 } catch (final IOException e) {
