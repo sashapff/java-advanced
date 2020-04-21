@@ -168,14 +168,25 @@ public class ParallelMapperImpl implements ParallelMapper {
     public void close() {
         synchronized (this) {
             closed = true;
+            workers.forEach(Thread::interrupt);
+            queue.forEach(Task::terminate);
         }
-        workers.forEach(Thread::interrupt);
-        queue.forEach(Task::terminate);
-        for (int i = 0; i < workers.size(); i++) {
+        for (int index = 0; index < workers.size(); index++) {
             try {
-                workers.get(i).join();
+                workers.get(index).join();
             } catch (final InterruptedException e) {
-                i--;
+                final InterruptedException exception = new InterruptedException();
+                exception.addSuppressed(e);
+                for (int i = index; i < workers.size(); i++) {
+                    workers.get(i).interrupt();
+                }
+                for (int i = index; i < workers.size(); i++) {
+                    try {
+                        workers.get(i).join();
+                    } catch (final InterruptedException e1) {
+                        i--;
+                    }
+                }
             }
         }
     }
