@@ -99,11 +99,6 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
 
         void applyAndSet(final int i, final T value) {
-            synchronized (this) {
-                if (terminated) {
-                    return;
-                }
-            }
             try {
                 set(i, function.apply(value));
             } catch (final RuntimeException e) {
