@@ -27,25 +27,25 @@ public class Implementor implements Impler {
 
     @Override
     public void implement(Class<?> token, Path root) throws ImplerException {
-        if (token == null || root == null) {
-            throw new ImplerException("Arguments are null");
-        }
-        if (token.isPrimitive() || token.isArray() || token == Enum.class || Modifier.isFinal(token.getModifiers())) {
-            throw new ImplerException("Error in token");
-        }
-        Path sourceCodeFile = root.resolve(token.getPackageName().replace('.', File.separatorChar))
-                .resolve(token.getSimpleName() + "Impl.java");
-        if (sourceCodeFile.getParent() != null) {
-            try {
-                Files.createDirectories(sourceCodeFile.getParent());
-            } catch (IOException e) {
-                throw new ImplerException("Error in creating directories: " + e.getMessage());
-            }
-        }
-        try (BufferedWriter writer = Files.newBufferedWriter(sourceCodeFile)) {
-            writer.write(ImplementorUtils.generateSourceCode(token));
-        } catch (IOException e) {
-            throw new ImplerException("Error in writing", e);
-        }
+//        if (token == null || root == null) {
+//            throw new ImplerException("Arguments are null");
+//        }
+//        if (token.isPrimitive() || token.isArray() || token == Enum.class || Modifier.isFinal(token.getModifiers())) {
+//            throw new ImplerException("Error in token");
+//        }
+//        Path sourceCodeFile = root.resolve(token.getPackageName().replace('.', File.separatorChar))
+//                .resolve(token.getSimpleName() + "Impl.java");
+//        if (sourceCodeFile.getParent() != null) {
+//            try {
+//                Files.createDirectories(sourceCodeFile.getParent());
+//            } catch (IOException e) {
+//                throw new ImplerException("Error in creating directories: " + e.getMessage());
+//            }
+//        }
+//        try (BufferedWriter writer = Files.newBufferedWriter(sourceCodeFile)) {
+//            writer.write(ImplementorUtils.generateSourceCode(token));
+//        } catch (IOException e) {
+//            throw new ImplerException("Error in writing", e);
+//        }
     }
 }
