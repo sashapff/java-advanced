@@ -2,12 +2,14 @@ package ru.ifmo.rain.ivanova.hello;
 
 import info.kgeorgiy.java.advanced.hello.HelloServer;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +72,8 @@ public class HelloUDPServer implements HelloServer {
         }
         HelloUDPServer server = new HelloUDPServer();
         server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+        System.out.println("Do yoy want close server?");
+        new Scanner(System.in).next();
         server.close();
     }
 }
