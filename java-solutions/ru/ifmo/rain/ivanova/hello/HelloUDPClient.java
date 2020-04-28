@@ -16,26 +16,33 @@ import java.util.concurrent.TimeUnit;
 public class HelloUDPClient implements HelloClient {
 
     private boolean check(String s, int a, int b) {
-//        int i = 0;
-//        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-//            i++;
-//        }
-//        String as = Integer.toString(a);
-//        String bs = Integer.toString(b);
-//        if (!s.substring(i, i + as.length()).equals(as)) {
-//            return false;
-//        }
-//        i += as.length();
-//        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-//            i++;
-//        }
-//        if (!s.substring(i, i + bs.length()).equals(bs)) {
-//            return false;
-//        }
-//        return true;
-        return s.matches(
-                "[\\D]*" + Integer.toString(a) +
-                        "[\\D]*" + Integer.toString(b) + "[\\D]*");
+        int i = 0;
+        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+            i++;
+        }
+        if (i == s.length()) {
+            return false;
+        }
+        String as = Integer.toString(a);
+        String bs = Integer.toString(b);
+        if (!s.substring(i, i + as.length()).equals(as)) {
+            return false;
+        }
+        i += as.length();
+        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+            i++;
+        }
+        if (i == s.length()) {
+            return false;
+        }
+        if (!s.substring(i, i + bs.length()).equals(bs)) {
+            return false;
+        }
+        i += bs.length();
+        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+            i++;
+        }
+        return i == s.length();
     }
 
 
