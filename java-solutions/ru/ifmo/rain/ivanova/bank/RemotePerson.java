@@ -1,9 +1,9 @@
 package ru.ifmo.rain.ivanova.bank;
 
 public class RemotePerson implements Person {
-    private int passport;
-    private String firstName;
-    private String lastName;
+    private final int passport;
+    private final String firstName;
+    private final String lastName;
 
     public RemotePerson(int passport, String firstName, String lastName) {
         this.passport = passport;

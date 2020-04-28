@@ -10,7 +10,7 @@ public class LocalPerson implements Person, Serializable {
     private final String lastName;
     private final Map<String, RemoteAccount> accounts;
 
-    public LocalPerson(int passport, String firstName, String lastName, Map<String, RemoteAccount> accounts) {
+    public LocalPerson(final int passport, final String firstName, final String lastName, final Map<String, RemoteAccount> accounts) {
         this.passport = passport;
         this.firstName = firstName;
         this.lastName = lastName;
