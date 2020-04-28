@@ -18,13 +18,13 @@ public class HelloUDPClient implements HelloClient {
         boolean result;
         int i;
 
-        Pair(boolean result, int i) {
+        Pair(final boolean result, final int i) {
             this.result = result;
             this.i = i;
         }
     }
 
-    private Pair check(int i, String s, String as) {
+    private Pair check(int i, final String s, final String as) {
         i = skipChars(s, i);
         if (i == s.length()) {
             return new Pair(false, i);
@@ -36,25 +36,25 @@ public class HelloUDPClient implements HelloClient {
         return new Pair(true, i);
     }
 
-    private int skipChars(String s, int i) {
+    private int skipChars(final String s, int i) {
         while (i < s.length() && !Character.isDigit(s.charAt(i))) {
             i++;
         }
         return i;
     }
 
-    private boolean checkSubStr(String s, String as, int i) {
+    private boolean checkSubStr(final String s, final String as, final int i) {
         return !s.substring(i, i + as.length()).equals(as);
     }
 
-    private boolean check(String s, int a, int b) {
+    private boolean check(final String s, final int a, final int b) {
         int i = 0;
-        Pair ap = check(i, s, Integer.toString(a));
+        final Pair ap = check(i, s, Integer.toString(a));
         if (!ap.result) {
             return false;
         }
         i = ap.i;
-        Pair bp = check(i, s, Integer.toString(b));
+        final Pair bp = check(i, s, Integer.toString(b));
         if (!bp.result) {
             return false;
         }
@@ -63,57 +63,58 @@ public class HelloUDPClient implements HelloClient {
     }
 
 
-    private void task(String host, int port, String prefix, int thread, int requests) {
+    private void task(final String host, final int port, final String prefix, final int thread, final int requests) {
         try (final DatagramSocket datagramSocket = new DatagramSocket()) {
             datagramSocket.setSoTimeout(100);
-            int receiveBufferSize = datagramSocket.getReceiveBufferSize();
+            final int receiveBufferSize = datagramSocket.getReceiveBufferSize();
             try {
-                DatagramPacket packet
+                final DatagramPacket packet
                         = HelloUDPUtills.newDatagramPacket(receiveBufferSize, host, port);
                 for (int i = 0; i < requests; i++) {
-                    String requestMessage = prefix + Integer.toString(thread) + "_" + Integer.toString(i);
-                    byte[] request = HelloUDPUtills.getBytes(requestMessage);
-                    String responseMessage = "";
+                    final String requestMessage = prefix + thread + "_" + i;
+                    final byte[] request = HelloUDPUtills.getBytes(requestMessage);
                     System.err.println(requestMessage);
+                    String responseMessage = "";
                     boolean success = false;
                     while (!success && !datagramSocket.isClosed()) {
-                        packet.setData(request, 0, request.length);
+                        packet.setData(request);
                         try {
                             datagramSocket.send(packet);
+                            // :NOTE: Переиспользование
                             packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
                             datagramSocket.receive(packet);
                             responseMessage = HelloUDPUtills.getString(packet);
                             success = check(responseMessage, thread, i);
-                        } catch (IOException e) {
+                        } catch (final IOException e) {
                             System.out.println("Cant't send DatagramPacket " + e.getMessage());
                         }
                     }
                     System.err.println(responseMessage);
                 }
-            } catch (UnknownHostException e) {
+            } catch (final UnknownHostException e) {
                 System.out.println("Can't get host name " + e.getMessage());
             }
-        } catch (SocketException e) {
+        } catch (final SocketException e) {
             System.out.println("Can't create DatagramSocket " + e.getMessage());
         }
     }
 
     @Override
-    public void run(String host, int port, String prefix, int threads, int requests) {
+    public void run(final String host, final int port, final String prefix, final int threads, final int requests) {
         final ExecutorService executorService = Executors.newFixedThreadPool(threads);
         for (int i = 0; i < threads; i++) {
-            int index = i;
+            final int index = i;
             executorService.submit(() -> task(host, port, prefix, index, requests));
         }
         executorService.shutdown();
         try {
             executorService.awaitTermination(10 * threads * requests, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             System.out.println("Can't terminate ExecutorService " + e.getMessage());
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args == null || args.length != 5 || Arrays.stream(args).anyMatch(Objects::isNull)) {
             System.out.println("Incorrect arguments");
             return;

@@ -21,10 +21,10 @@ public class HelloUDPServer implements HelloServer {
 
     private void task() {
         final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
-        byte[] request = new byte[receiveBufferSize];
+        final byte[] request = new byte[receiveBufferSize];
         while (!datagramSocket.isClosed()) {
             try {
-                packet.setData(request, 0, request.length);
+                packet.setData(request);
                 datagramSocket.receive(packet);
                 final String requestMessage = HelloUDPUtills.getString(packet);
                 final byte[] response = HelloUDPUtills.getBytes("Hello, " + requestMessage);
