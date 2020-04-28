@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+rmiregistry &
+ROOT="../../../../../../"
+LIB="$ROOT/lib"
+OUT="$ROOT/out/production/java-advanced-2020-solutions"
+java -cp "$OUT":"$LIB/junit-4.11.jar":"$LIB/hamcrest-core-1.3.jar" org.junit.runner.JUnitCore ru.ifmo.rain.ivanova.bank.BankTest
+
