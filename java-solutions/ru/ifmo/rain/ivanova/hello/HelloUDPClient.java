@@ -32,7 +32,7 @@ public class HelloUDPClient implements HelloClient {
                         packet.setData(request, 0, request.length);
                         try {
                             datagramSocket.send(packet);
-                            packet.setData(new byte[receiveBufferSize]);
+                            packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
                             datagramSocket.receive(packet);
                             responseMessage = HelloUDPUtills.getString(packet);
                             success = responseMessage.matches(

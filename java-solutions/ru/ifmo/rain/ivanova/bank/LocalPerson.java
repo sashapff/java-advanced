@@ -8,9 +8,9 @@ public class LocalPerson implements Person, Serializable {
     private final int passport;
     private final String firstName;
     private final String lastName;
-    private final Map<String, PersonAccount> accounts;
+    private final Map<String, RemoteAccount> accounts;
 
-    public LocalPerson(int passport, String firstName, String lastName, Map<String, PersonAccount> accounts) {
+    public LocalPerson(int passport, String firstName, String lastName, Map<String, RemoteAccount> accounts) {
         this.passport = passport;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -32,7 +32,7 @@ public class LocalPerson implements Person, Serializable {
         return lastName;
     }
 
-    void addAccount(final String id, final PersonAccount account) {
+    void addAccount(final String id, final RemoteAccount account) {
         accounts.put(id, account);
     }
 

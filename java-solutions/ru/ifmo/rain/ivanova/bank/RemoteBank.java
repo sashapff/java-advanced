@@ -26,12 +26,12 @@ public class RemoteBank implements Bank {
     public Account createAccount(final String id, Person person) throws RemoteException {
         String fullAccountId = getFullAccountId(id, person.getPassport());
         System.out.println("Creating account " + fullAccountId);
-        final Account account = new PersonAccount(fullAccountId);
+        final Account account = new RemoteAccount(fullAccountId);
         if (accounts.putIfAbsent(fullAccountId, account) == null) {
             UnicastRemoteObject.exportObject(account, port);
             personAccounts.get(person.getPassport()).add(id);
             if (person instanceof LocalPerson) {
-                ((LocalPerson) person).addAccount(id, new PersonAccount(id));
+                ((LocalPerson) person).addAccount(id, new RemoteAccount(id));
             }
         }
         return getAccount(id, person);
@@ -76,11 +76,11 @@ public class RemoteBank implements Bank {
         if (person == null) {
             return null;
         }
-        Map<String, PersonAccount> localAccounts = new HashMap<>();
+        Map<String, RemoteAccount> localAccounts = new HashMap<>();
         getAccounts(person).forEach(i -> {
             try {
                 Account account = getAccount(i, person);
-                localAccounts.put(i, new PersonAccount(account.getId().split(":")[1], account.getAmount()));
+                localAccounts.put(i, new RemoteAccount(account.getId().split(":")[1], account.getAmount()));
             } catch (RemoteException e) {
                 System.out.println("Can't get account " + e.getMessage());
             }

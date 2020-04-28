@@ -1,15 +1,15 @@
 package ru.ifmo.rain.ivanova.bank;
 
-public class PersonAccount implements Account {
+public class RemoteAccount implements Account {
     private final String id;
     private int amount;
 
-    public PersonAccount(final String id) {
+    public RemoteAccount(final String id) {
         this.id = id;
         amount = 0;
     }
 
-    public PersonAccount(String id, final int amount) {
+    public RemoteAccount(String id, final int amount) {
         this.id = id;
         this.amount = amount;
     }
