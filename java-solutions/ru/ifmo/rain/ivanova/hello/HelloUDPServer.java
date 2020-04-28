@@ -70,7 +70,7 @@ public class HelloUDPServer implements HelloServer {
             System.out.println("Incorrect arguments");
             return;
         }
-        HelloUDPServer server = new HelloUDPServer();
+        final HelloUDPServer server = new HelloUDPServer();
         server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
         System.out.println("Enter something to close server");
         new Scanner(System.in).next();

@@ -15,8 +15,32 @@ import java.util.concurrent.TimeUnit;
 
 public class HelloUDPClient implements HelloClient {
 
+    private boolean check(String s, int a, int b) {
+//        int i = 0;
+//        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+//            i++;
+//        }
+//        String as = Integer.toString(a);
+//        String bs = Integer.toString(b);
+//        if (!s.substring(i, i + as.length()).equals(as)) {
+//            return false;
+//        }
+//        i += as.length();
+//        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+//            i++;
+//        }
+//        if (!s.substring(i, i + bs.length()).equals(bs)) {
+//            return false;
+//        }
+//        return true;
+        return s.matches(
+                "[\\D]*" + Integer.toString(a) +
+                        "[\\D]*" + Integer.toString(b) + "[\\D]*");
+    }
+
+
     private void task(String host, int port, String prefix, int thread, int requests) {
-        try (DatagramSocket datagramSocket = new DatagramSocket()) {
+        try (final DatagramSocket datagramSocket = new DatagramSocket()) {
             datagramSocket.setSoTimeout(100);
             int receiveBufferSize = datagramSocket.getReceiveBufferSize();
             try {
@@ -35,9 +59,7 @@ public class HelloUDPClient implements HelloClient {
                             packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
                             datagramSocket.receive(packet);
                             responseMessage = HelloUDPUtills.getString(packet);
-                            success = responseMessage.matches(
-                                    "[\\D]*" + Integer.toString(thread) +
-                                            "[\\D]*" + Integer.toString(i) + "[\\D]*");
+                            success = check(responseMessage, thread, i);
                         } catch (IOException e) {
                             System.out.println("Cant't send DatagramPacket " + e.getMessage());
                         }
@@ -54,7 +76,7 @@ public class HelloUDPClient implements HelloClient {
 
     @Override
     public void run(String host, int port, String prefix, int threads, int requests) {
-        ExecutorService executorService = Executors.newFixedThreadPool(threads);
+        final ExecutorService executorService = Executors.newFixedThreadPool(threads);
         for (int i = 0; i < threads; i++) {
             int index = i;
             executorService.submit(() -> task(host, port, prefix, index, requests));
