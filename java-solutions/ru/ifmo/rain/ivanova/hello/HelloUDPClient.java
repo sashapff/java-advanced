@@ -14,35 +14,52 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class HelloUDPClient implements HelloClient {
+    class Pair {
+        boolean result;
+        int i;
+
+        Pair(boolean result, int i) {
+            this.result = result;
+            this.i = i;
+        }
+    }
+
+    private Pair check(int i, String s, String as) {
+        i = skipChars(s, i);
+        if (i == s.length()) {
+            return new Pair(false, i);
+        }
+        if (checkSubStr(s, as, i)) {
+            return new Pair(false, i);
+        }
+        i += as.length();
+        return new Pair(true, i);
+    }
+
+    private int skipChars(String s, int i) {
+        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    private boolean checkSubStr(String s, String as, int i) {
+        return !s.substring(i, i + as.length()).equals(as);
+    }
 
     private boolean check(String s, int a, int b) {
         int i = 0;
-        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-            i++;
-        }
-        if (i == s.length()) {
+        Pair ap = check(i, s, Integer.toString(a));
+        if (!ap.result) {
             return false;
         }
-        String as = Integer.toString(a);
-        String bs = Integer.toString(b);
-        if (!s.substring(i, i + as.length()).equals(as)) {
+        i = ap.i;
+        Pair bp = check(i, s, Integer.toString(b));
+        if (!bp.result) {
             return false;
         }
-        i += as.length();
-        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-            i++;
-        }
-        if (i == s.length()) {
-            return false;
-        }
-        if (!s.substring(i, i + bs.length()).equals(bs)) {
-            return false;
-        }
-        i += bs.length();
-        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-            i++;
-        }
-        return i == s.length();
+        i = bp.i;
+        return skipChars(s, i) == s.length();
     }
 
 

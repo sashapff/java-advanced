@@ -494,6 +494,11 @@ public class BankTest {
 
         Client.main(globalFirstName, globalLastName,
                 toString(globalPassport), globalAccountId);
+        assertEquals(globalPassport, person.getPassport());
+        assertEquals(globalFirstName, person.getFirstName());
+        assertEquals(globalLastName, person.getLastName());
+        assertEquals(getFullAccountId(globalAccountId, person.getPassport()), account.getId());
+        assertEquals(2 * globalAddition, account.getAmount());
     }
 
 }
