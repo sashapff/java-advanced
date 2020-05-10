@@ -2,7 +2,6 @@ package ru.ifmo.rain.ivanova.hello;
 
 import info.kgeorgiy.java.advanced.hello.HelloServer;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;

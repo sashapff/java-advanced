@@ -11,8 +11,8 @@ class HelloUDPUtills {
         return new DatagramPacket(new byte[bufferSize], bufferSize);
     }
 
-    static DatagramPacket newDatagramPacket(final int sendBufferSize, final String host, final int port) throws UnknownHostException {
-        return new DatagramPacket(new byte[sendBufferSize], sendBufferSize,
+    static DatagramPacket newDatagramPacket(final byte[] response, final String host, final int port) throws UnknownHostException {
+        return new DatagramPacket(response, response.length,
                 new InetSocketAddress(InetAddress.getByName(host), port));
     }
 

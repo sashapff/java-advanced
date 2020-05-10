@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-rmiregistry &
 ROOT="../../../../../../"
 LIB="$ROOT/lib"
 OUT="$ROOT/out/production/java-advanced-2020-solutions"

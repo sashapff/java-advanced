@@ -24,6 +24,17 @@ public class HelloUDPClient implements HelloClient {
         }
     }
 
+    private int skipChars(final String s, int i) {
+        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    private boolean checkSubStr(final String s, final String as, final int i) {
+        return !s.substring(i, i + as.length()).equals(as);
+    }
+
     private Pair check(int i, final String s, final String as) {
         i = skipChars(s, i);
         if (i == s.length()) {
@@ -34,17 +45,6 @@ public class HelloUDPClient implements HelloClient {
         }
         i += as.length();
         return new Pair(true, i);
-    }
-
-    private int skipChars(final String s, int i) {
-        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-            i++;
-        }
-        return i;
-    }
-
-    private boolean checkSubStr(final String s, final String as, final int i) {
-        return !s.substring(i, i + as.length()).equals(as);
     }
 
     private boolean check(final String s, final int a, final int b) {
@@ -66,22 +66,24 @@ public class HelloUDPClient implements HelloClient {
     private void task(final String host, final int port, final String prefix, final int thread, final int requests) {
         try (final DatagramSocket datagramSocket = new DatagramSocket()) {
             datagramSocket.setSoTimeout(100);
-            final int receiveBufferSize = datagramSocket.getReceiveBufferSize();
+            final int bufferSize = datagramSocket.getSendBufferSize();
+            byte[] request;
+            byte[] response = new byte[bufferSize];
+            String requestMessage, responseMessage;
             try {
                 final DatagramPacket packet
-                        = HelloUDPUtills.newDatagramPacket(receiveBufferSize, host, port);
+                        = HelloUDPUtills.newDatagramPacket(response, host, port);
                 for (int i = 0; i < requests; i++) {
-                    final String requestMessage = prefix + thread + "_" + i;
-                    final byte[] request = HelloUDPUtills.getBytes(requestMessage);
+                    requestMessage = prefix + thread + "_" + i;
+                    request = HelloUDPUtills.getBytes(requestMessage);
                     System.err.println(requestMessage);
-                    String responseMessage = "";
+                    responseMessage = "";
                     boolean success = false;
                     while (!success && !datagramSocket.isClosed()) {
                         packet.setData(request);
                         try {
                             datagramSocket.send(packet);
-                            // :NOTE: Переиспользование
-                            packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
+                            packet.setData(response, 0, bufferSize);
                             datagramSocket.receive(packet);
                             responseMessage = HelloUDPUtills.getString(packet);
                             success = check(responseMessage, thread, i);
