@@ -16,20 +16,17 @@ import java.util.concurrent.TimeUnit;
 public class HelloUDPServer implements HelloServer {
     private DatagramSocket datagramSocket;
     private ExecutorService executorService;
-    private int receiveBufferSize;
+    private int bufferSize;
 
     private void task() {
-        final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(receiveBufferSize);
-        final byte[] request = new byte[receiveBufferSize];
+        final DatagramPacket packet = HelloUDPUtills.newDatagramPacket(bufferSize);
+        final byte[] request = new byte[bufferSize];
         while (!datagramSocket.isClosed()) {
             try {
-                packet.setData(request);
-                datagramSocket.receive(packet);
-                final String requestMessage = HelloUDPUtills.getString(packet);
-                final byte[] response = HelloUDPUtills.getBytes("Hello, " + requestMessage);
-                packet.setData(response, 0, response.length);
+                final String message = HelloUDPUtills.receive(datagramSocket, packet, request);
+                final byte[] response = HelloUDPUtills.getBytes("Hello, " + message);
                 try {
-                    datagramSocket.send(packet);
+                    HelloUDPUtills.send(datagramSocket, packet, response);
                 } catch (final IOException e) {
                     System.out.println("Cant't send DatagramPacket " + e.getMessage());
                 }
@@ -44,7 +41,7 @@ public class HelloUDPServer implements HelloServer {
         executorService = Executors.newFixedThreadPool(threads);
         try {
             datagramSocket = new DatagramSocket(port);
-            receiveBufferSize = datagramSocket.getReceiveBufferSize();
+            bufferSize = datagramSocket.getReceiveBufferSize();
             for (int i = 0; i < threads; i++) {
                 executorService.submit(this::task);
             }

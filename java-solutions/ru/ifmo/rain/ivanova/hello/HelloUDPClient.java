@@ -54,7 +54,6 @@ public class HelloUDPClient implements HelloClient {
         return skipChars(s, bp.i) == s.length();
     }
 
-
     private void task(final String host, final int port, final String prefix, final int thread, final int requests) {
         try (final DatagramSocket datagramSocket = new DatagramSocket()) {
             datagramSocket.setSoTimeout(100);
@@ -71,9 +70,9 @@ public class HelloUDPClient implements HelloClient {
                     System.err.println(message);
                     boolean success = false;
                     while (!success && !datagramSocket.isClosed()) {
-                        packet.setData(request);
                         try {
-                            message = HelloUDPUtills.sendAndReceive(datagramSocket, packet, response);
+                            HelloUDPUtills.send(datagramSocket, packet, request);
+                            message = HelloUDPUtills.receive(datagramSocket, packet, response);
                             success = checkInts(message, thread, i);
                         } catch (final IOException e) {
                             System.out.println("Cant't send DatagramPacket " + e.getMessage());
