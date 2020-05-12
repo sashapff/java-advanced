@@ -4,35 +4,16 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-public class LocalPerson implements Person, Serializable {
-    private final int passport;
-    private final String firstName;
-    private final String lastName;
-    private final Map<String, RemoteAccount> accounts;
+public class LocalPerson extends PersonImpl implements Serializable {
+    private final Map<String, Account> accounts;
 
-    public LocalPerson(final int passport, final String firstName, final String lastName, final Map<String, RemoteAccount> accounts) {
-        this.passport = passport;
-        this.firstName = firstName;
-        this.lastName = lastName;
+    LocalPerson(final int passport, final String firstName, final String lastName,
+                final Map<String, Account> accounts) {
+        super(passport, firstName, lastName);
         this.accounts = accounts;
     }
 
-    @Override
-    public int getPassport() {
-        return passport;
-    }
-
-    @Override
-    public String getFirstName() {
-        return firstName;
-    }
-
-    @Override
-    public String getLastName() {
-        return lastName;
-    }
-
-    void addAccount(final String id, final RemoteAccount account) {
+    void addAccount(final String id, final Account account) {
         accounts.put(id, account);
     }
 

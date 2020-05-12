@@ -1,9 +1,7 @@
 package ru.ifmo.rain.ivanova.hello;
 
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import java.io.IOException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 class HelloUDPUtills {
@@ -23,5 +21,12 @@ class HelloUDPUtills {
     static String getString(final DatagramPacket packet) {
         return new String(packet.getData(),
                 packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8);
+    }
+
+    static String sendAndReceive(DatagramSocket datagramSocket, DatagramPacket packet, byte[] response) throws IOException {
+        datagramSocket.send(packet);
+        packet.setData(response, 0, response.length);
+        datagramSocket.receive(packet);
+        return HelloUDPUtills.getString(packet);
     }
 }

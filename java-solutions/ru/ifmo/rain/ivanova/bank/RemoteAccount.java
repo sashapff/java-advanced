@@ -4,12 +4,12 @@ public class RemoteAccount implements Account {
     private final String id;
     private int amount;
 
-    public RemoteAccount(final String id) {
+    RemoteAccount(final String id) {
         this.id = id;
         amount = 0;
     }
 
-    public RemoteAccount(String id, final int amount) {
+    RemoteAccount(String id, final int amount) {
         this.id = id;
         this.amount = amount;
     }

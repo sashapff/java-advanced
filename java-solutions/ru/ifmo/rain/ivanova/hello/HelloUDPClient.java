@@ -35,31 +35,23 @@ public class HelloUDPClient implements HelloClient {
         return !s.substring(i, i + as.length()).equals(as);
     }
 
-    private Pair check(int i, final String s, final String as) {
+    private Pair checkInt(int i, final String s, final String as) {
         i = skipChars(s, i);
-        if (i == s.length()) {
-            return new Pair(false, i);
-        }
-        if (checkSubStr(s, as, i)) {
+        if (i == s.length() || checkSubStr(s, as, i)) {
             return new Pair(false, i);
         }
         i += as.length();
         return new Pair(true, i);
     }
 
-    private boolean check(final String s, final int a, final int b) {
+    private boolean checkInts(final String s, final int a, final int b) {
         int i = 0;
-        final Pair ap = check(i, s, Integer.toString(a));
-        if (!ap.result) {
+        final Pair ap = checkInt(i, s, Integer.toString(a));
+        final Pair bp = checkInt(ap.i, s, Integer.toString(b));
+        if (!bp.result || !ap.result) {
             return false;
         }
-        i = ap.i;
-        final Pair bp = check(i, s, Integer.toString(b));
-        if (!bp.result) {
-            return false;
-        }
-        i = bp.i;
-        return skipChars(s, i) == s.length();
+        return skipChars(s, bp.i) == s.length();
     }
 
 
@@ -69,29 +61,25 @@ public class HelloUDPClient implements HelloClient {
             final int bufferSize = datagramSocket.getSendBufferSize();
             byte[] request;
             byte[] response = new byte[bufferSize];
-            String requestMessage, responseMessage;
+            String message;
             try {
                 final DatagramPacket packet
                         = HelloUDPUtills.newDatagramPacket(response, host, port);
                 for (int i = 0; i < requests; i++) {
-                    requestMessage = prefix + thread + "_" + i;
-                    request = HelloUDPUtills.getBytes(requestMessage);
-                    System.err.println(requestMessage);
-                    responseMessage = "";
+                    message = prefix + thread + "_" + i;
+                    request = HelloUDPUtills.getBytes(message);
+                    System.err.println(message);
                     boolean success = false;
                     while (!success && !datagramSocket.isClosed()) {
                         packet.setData(request);
                         try {
-                            datagramSocket.send(packet);
-                            packet.setData(response, 0, bufferSize);
-                            datagramSocket.receive(packet);
-                            responseMessage = HelloUDPUtills.getString(packet);
-                            success = check(responseMessage, thread, i);
+                            message = HelloUDPUtills.sendAndReceive(datagramSocket, packet, response);
+                            success = checkInts(message, thread, i);
                         } catch (final IOException e) {
                             System.out.println("Cant't send DatagramPacket " + e.getMessage());
                         }
                     }
-                    System.err.println(responseMessage);
+                    System.err.println(message);
                 }
             } catch (final UnknownHostException e) {
                 System.out.println("Can't get host name " + e.getMessage());
