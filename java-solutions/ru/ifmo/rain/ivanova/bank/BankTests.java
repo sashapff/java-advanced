@@ -11,10 +11,7 @@ public class BankTests {
 
         final Result result = junit.run(BankTest.class);
 
-        if (result.getFailureCount() > 0) {
-            System.exit(1);
-        }
-        System.exit(0);
+        System.exit(result.getFailureCount() > 0 ? 1 : 0);
     }
 
 }

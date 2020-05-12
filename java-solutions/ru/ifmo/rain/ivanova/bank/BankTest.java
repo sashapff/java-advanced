@@ -23,7 +23,7 @@ public class BankTest {
     private static Bank bank;
     private static Registry registry;
     private static final int globalPassport = 0;
-    private static final String globalFirstName = "First";
+    private static final String GLOBAL_FIRST_NAME = "First";
     private static final String globalLastName = "Last";
     private static final String globalAccountId = "Account";
     private static final int globalAddition = 50;
@@ -43,7 +43,7 @@ public class BankTest {
     }
 
     private void checkPerson(final Person person) throws RemoteException {
-        checkPerson(person, globalPassport, globalFirstName, globalLastName);
+        checkPerson(person, globalPassport, GLOBAL_FIRST_NAME, globalLastName);
     }
 
     private void checkPerson(final Person person, final int passport,
@@ -55,7 +55,7 @@ public class BankTest {
     }
 
     private Person getPerson() throws RemoteException {
-        return getPerson(globalPassport, globalFirstName, globalLastName);
+        return getPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
     }
 
     private Person getPerson(final int passport, final String firstName, final String lastName) throws RemoteException {
@@ -70,7 +70,7 @@ public class BankTest {
     }
 
     private Person getRemotePerson() throws RemoteException {
-        return getRemotePerson(globalPassport, globalFirstName, globalLastName);
+        return getRemotePerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
     }
 
     private Person getRemotePerson(final int passport, final String firstName,
@@ -82,7 +82,7 @@ public class BankTest {
     }
 
     private Person getLocalPerson() throws RemoteException {
-        return getLocalPerson(globalPassport, globalFirstName, globalLastName);
+        return getLocalPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
     }
 
     private Person getLocalPerson(final int passport, final String firstName,
@@ -106,7 +106,7 @@ public class BankTest {
     @Test
     public void test03_createPersonTwice() throws RemoteException {
         final Person person = getPerson();
-        assertEquals(person, bank.createPerson(globalPassport, globalFirstName, globalLastName));
+        assertEquals(person, bank.createPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName));
     }
 
     @Test
@@ -375,7 +375,7 @@ public class BankTest {
 
     @Test
     public void test26_manyAccountsOfOneRemotePerson() throws RemoteException {
-        final Person person = bank.createPerson(globalPassport, globalFirstName, globalLastName);
+        final Person person = bank.createPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
         assertNotNull(person);
         final List<Person> persons = new ArrayList<>();
         for (int i = 0; i < size; i++) {
@@ -395,7 +395,7 @@ public class BankTest {
     public void test27_setAmountOfManyAccountsOfManyPersons() throws RemoteException {
         final List<Person> persons = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            final Person person = bank.createPerson(i, globalFirstName, globalLastName);
+            final Person person = bank.createPerson(i, GLOBAL_FIRST_NAME, globalLastName);
             assertNotNull(person);
             persons.add(bank.getRemotePerson(i));
         }
@@ -421,7 +421,7 @@ public class BankTest {
     public void test28_setAmountTwice() throws RemoteException {
         for (var i = 0; i < size; ++i) {
             final Person person = bank.createPerson(globalPassport + i,
-                    globalFirstName + i, globalLastName + i);
+                    GLOBAL_FIRST_NAME + i, globalLastName + i);
             assertNotNull(person);
         }
 
@@ -455,24 +455,24 @@ public class BankTest {
 
     @Test
     public void test29_client() throws RemoteException {
-        Client.main(globalFirstName, globalLastName,
+        Client.main(GLOBAL_FIRST_NAME, globalLastName,
                 toString(globalPassport), globalAccountId, toString(globalAddition));
         final Person person = bank.getRemotePerson(globalPassport);
         checkPerson(person);
         final Account account = bank.getAccount(globalAccountId, person);
         checkAccount(account, person, globalAccountId, globalPassport, globalAddition);
 
-        Client.main(globalFirstName + "incorrect", globalLastName + "incorrect",
+        Client.main(GLOBAL_FIRST_NAME + "incorrect", globalLastName + "incorrect",
                 toString(globalPassport), globalAccountId, toString(globalAddition));
         checkPerson(person);
         checkAccount(account, person, globalAccountId, globalPassport, globalAddition);
 
-        Client.main(globalFirstName, globalLastName,
+        Client.main(GLOBAL_FIRST_NAME, globalLastName,
                 toString(globalPassport), globalAccountId, toString(globalAddition));
         checkPerson(person);
         checkAccount(account, person, globalAccountId, globalPassport, 2 * globalAddition);
 
-        Client.main(globalFirstName, globalLastName,
+        Client.main(GLOBAL_FIRST_NAME, globalLastName,
                 toString(globalPassport), globalAccountId);
         checkPerson(person);
         checkAccount(account, person, globalAccountId, globalPassport, 2 * globalAddition);
