@@ -45,7 +45,7 @@ public class HelloUDPClient implements HelloClient {
     }
 
     private boolean checkInts(final String s, final int a, final int b) {
-        int i = 0;
+        final int i = 0;
         final Pair ap = checkInt(i, s, Integer.toString(a));
         final Pair bp = checkInt(ap.i, s, Integer.toString(b));
         if (!bp.result || !ap.result) {
@@ -58,15 +58,13 @@ public class HelloUDPClient implements HelloClient {
         try (final DatagramSocket datagramSocket = new DatagramSocket()) {
             datagramSocket.setSoTimeout(100);
             final int bufferSize = datagramSocket.getSendBufferSize();
-            byte[] request;
-            byte[] response = new byte[bufferSize];
-            String message;
+            final byte[] response = new byte[bufferSize];
             try {
                 final DatagramPacket packet
                         = HelloUDPUtills.newDatagramPacket(response, host, port);
                 for (int i = 0; i < requests; i++) {
-                    message = prefix + thread + "_" + i;
-                    request = HelloUDPUtills.getBytes(message);
+                    String message = prefix + thread + "_" + i;
+                    final byte[] request = HelloUDPUtills.getBytes(message);
                     System.err.println(message);
                     boolean success = false;
                     while (!success && !datagramSocket.isClosed()) {
@@ -97,7 +95,7 @@ public class HelloUDPClient implements HelloClient {
         }
         executorService.shutdown();
         try {
-            executorService.awaitTermination(10 * threads * requests, TimeUnit.SECONDS);
+            executorService.awaitTermination(10 * requests, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
             System.out.println("Can't terminate ExecutorService " + e.getMessage());
         }

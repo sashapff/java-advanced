@@ -23,13 +23,13 @@ class HelloUDPUtills {
                 packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8);
     }
 
-    static String receive(DatagramSocket datagramSocket, DatagramPacket packet, byte[] response) throws IOException {
+    static String receive(final DatagramSocket datagramSocket, final DatagramPacket packet, final byte[] response) throws IOException {
         packet.setData(response, 0, response.length);
         datagramSocket.receive(packet);
         return HelloUDPUtills.getString(packet);
     }
 
-    static void send(DatagramSocket datagramSocket, DatagramPacket packet, byte[] request) throws IOException {
+    static void send(final DatagramSocket datagramSocket, final DatagramPacket packet, final byte[] request) throws IOException {
         packet.setData(request, 0, request.length);
         datagramSocket.send(packet);
     }
