@@ -235,31 +235,27 @@ public class BankTest {
     @Test
     public void test14_addRemotePersonAccount() throws RemoteException {
         final Person remotePerson = getRemotePerson();
-        assertEquals(0, bank.getAccounts(remotePerson).size());
-        final Account account = bank.createAccount(globalAccountId, remotePerson);
-        checkAccount(account, remotePerson);
-        assertEquals(1, bank.getAccounts(remotePerson).size());
+        assertEquals(0, getPersonAccountsSize(remotePerson));
+        getAccount(remotePerson);
+        assertEquals(1, getPersonAccountsSize(remotePerson));
     }
 
     @Test
     public void test15_addLocalPersonAccount() throws RemoteException {
         final Person localPerson = getLocalPerson();
-        assertEquals(0, bank.getAccounts(localPerson).size());
-        final Account account = bank.createAccount(globalAccountId, localPerson);
-        checkAccount(account, localPerson);
-        assertEquals(1, bank.getAccounts(localPerson).size());
+        assertEquals(0, getPersonAccountsSize(localPerson));
+        getAccount(localPerson);
+        assertEquals(1, getPersonAccountsSize(localPerson));
     }
 
     @Test
     public void test16_addManyAccountsToRemotePerson() throws RemoteException {
-        final Person remotePerson = getRemotePerson();
-        addAccounts(remotePerson);
+        addAccounts(getRemotePerson());
     }
 
     @Test
     public void test17_addManyAccountsToLocalPerson() throws RemoteException {
-        final Person localPerson = getLocalPerson();
-        addAccounts(localPerson);
+        addAccounts(getLocalPerson());
     }
 
     @Test
@@ -310,16 +306,22 @@ public class BankTest {
         }
     }
 
+    private void setAmount(Account account) throws RemoteException {
+        setAmount(account, globalAddition);
+    }
+
+    private void setAmount(Account account, final int addition) throws RemoteException {
+        account.setAmount(addition);
+        assertEquals(globalAddition, account.getAmount());
+    }
+
     @Test
     public void test22_setAmountInLocalAccountCreatingLocalAccountAfterLocalPerson() throws RemoteException {
         final Person remotePerson = getRemotePerson();
         final Person localPerson = getLocalPerson();
-        final Account localAccount = bank.createAccount(globalAccountId, localPerson);
-        assertNotNull(localAccount);
-        final Account remoteAccount = bank.getAccount(globalAccountId, remotePerson);
-        assertNotNull(remoteAccount);
-        localAccount.setAmount(globalAddition);
-        assertEquals(globalAddition, localAccount.getAmount());
+        final Account localAccount = getAccount(localPerson);
+        final Account remoteAccount = getAccount(remotePerson);
+        setAmount(localAccount);
         assertEquals(0, remoteAccount.getAmount());
     }
 
@@ -327,8 +329,7 @@ public class BankTest {
     public void test23_setAmountInRemoteAccountCreatingRemoteAccountAfterLocalPerson() throws RemoteException {
         final Person remotePerson = getRemotePerson();
         final Person localPerson = getLocalPerson();
-        final Account remoteAccount = bank.createAccount(globalAccountId, remotePerson);
-        assertNotNull(remoteAccount);
+        final Account remoteAccount = getAccount(remotePerson);
         final Account localAccount = bank.getAccount(globalAccountId, localPerson);
         assertNotNull(localAccount);
         assertEquals(localAccount, remoteAccount);
