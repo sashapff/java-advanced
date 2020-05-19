@@ -1,8 +1,5 @@
 package ru.ifmo.rain.ivanova.bank;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,23 +26,6 @@ public class RemoteBank implements Bank {
         return false;
     }
 
-    private <T extends Remote> void exportObject(final T o, final int port) {
-        try {
-            UnicastRemoteObject.exportObject(o, port);
-        } catch (RemoteException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private void throwException(final UncheckedIOException e) throws RemoteException {
-        IOException cause = e.getCause();
-        if (cause instanceof RemoteException) {
-            throw (RemoteException) cause;
-        } else {
-            throw e;
-        }
-    }
-
     public Account createAccount(final String id, Person person) throws RemoteException {
         if (emptyPerson(person)) {
             return null;
@@ -55,15 +35,15 @@ public class RemoteBank implements Bank {
         final Account account = new RemoteAccount(fullAccountId);
         try {
             if (accounts.putIfAbsent(fullAccountId, account) == null) {
-                exportObject(account, port);
+                UnicastRemoteObject.exportObject(account, port);
                 if (person instanceof LocalPerson) {
                     person.addAccount(id, new RemoteAccount(account.getId()));
                 } else {
                     person.addAccount(id, account);
                 }
             }
-        } catch (UncheckedIOException e) {
-            throwException(e);
+        } catch (RemoteException ignored) {
+            return null;
         }
         return getAccount(id, person);
     }
@@ -89,16 +69,16 @@ public class RemoteBank implements Bank {
     }
 
     @Override
-    public Person createPerson(int passport, String firstName, String lastName) throws RemoteException {
+    public Person createPerson(int passport, String firstName, String lastName) {
         System.out.println("Creating person " + passport);
         final Person person = new RemotePerson(passport, firstName, lastName);
         try {
             if (persons.putIfAbsent(passport, person) == null) {
-                exportObject(person, port);
+                UnicastRemoteObject.exportObject(person, port);
                 return person;
             }
-        } catch (UncheckedIOException e) {
-            throwException(e);
+        } catch (RemoteException e) {
+            return null;
         }
         return persons.get(passport);
     }
