@@ -53,17 +53,17 @@ public class RemoteBank implements Bank {
         String fullAccountId = getFullAccountId(id, person.getPassport());
         System.out.println("Creating account " + fullAccountId);
         final Account account = new RemoteAccount(fullAccountId);
-        if (accounts.putIfAbsent(fullAccountId, account) == null) {
-            try {
+        try {
+            if (accounts.putIfAbsent(fullAccountId, account) == null) {
                 exportObject(account, port);
                 if (person instanceof LocalPerson) {
                     person.addAccount(id, new RemoteAccount(account.getId()));
                 } else {
                     person.addAccount(id, account);
                 }
-            } catch (UncheckedIOException e) {
-                throwException(e);
             }
+        } catch (UncheckedIOException e) {
+            throwException(e);
         }
         return getAccount(id, person);
     }
@@ -92,13 +92,13 @@ public class RemoteBank implements Bank {
     public Person createPerson(int passport, String firstName, String lastName) throws RemoteException {
         System.out.println("Creating person " + passport);
         final Person person = new RemotePerson(passport, firstName, lastName);
-        if (persons.putIfAbsent(passport, person) == null) {
-            try {
+        try {
+            if (persons.putIfAbsent(passport, person) == null) {
                 exportObject(person, port);
                 return person;
-            } catch (UncheckedIOException e) {
-                throwException(e);
             }
+        } catch (UncheckedIOException e) {
+            throwException(e);
         }
         return persons.get(passport);
     }
