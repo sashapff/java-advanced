@@ -22,12 +22,12 @@ public class BankTest {
     private static final int PORT = 4040;
     private static Bank bank;
     private static Registry registry;
-    private static final int globalPassport = 0;
+    private static final int GLOBAL_PASSPORT = 0;
     private static final String GLOBAL_FIRST_NAME = "First";
-    private static final String globalLastName = "Last";
-    private static final String globalAccountId = "Account";
-    private static final int globalAddition = 50;
-    private static final int size = 10;
+    private static final String GLOBAL_LAST_NAME = "Last";
+    private static final String GLOBAL_ACCOUNT_ID = "Account";
+    private static final int GLOBAL_ADDITION = 50;
+    private static final int SIZE = 10;
 
     @BeforeClass
     public static void beforeClass() throws RemoteException {
@@ -43,7 +43,7 @@ public class BankTest {
     }
 
     private void checkPerson(final Person person) throws RemoteException {
-        checkPerson(person, globalPassport, GLOBAL_FIRST_NAME, globalLastName);
+        checkPerson(person, GLOBAL_PASSPORT, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME);
     }
 
     private void checkPerson(final Person person, final int passport,
@@ -54,11 +54,11 @@ public class BankTest {
         assertEquals(passport, person.getPassport());
     }
 
-    private Person getPerson() throws RemoteException {
-        return getPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
+    private Person createPerson() throws RemoteException {
+        return createPerson(GLOBAL_PASSPORT, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME);
     }
 
-    private Person getPerson(final int passport, final String firstName, final String lastName) throws RemoteException {
+    private Person createPerson(final int passport, final String firstName, final String lastName) throws RemoteException {
         final Person person = bank.createPerson(passport, firstName, lastName);
         checkPerson(person, passport, firstName, lastName);
         return person;
@@ -66,28 +66,28 @@ public class BankTest {
 
     @Test
     public void test00_createPerson() throws RemoteException {
-        getPerson();
+        createPerson();
     }
 
-    private Person getRemotePerson() throws RemoteException {
-        return getRemotePerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
+    private Person createRemotePerson() throws RemoteException {
+        return createRemotePerson(GLOBAL_PASSPORT, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME);
     }
 
-    private Person getRemotePerson(final int passport, final String firstName,
-                                   final String lastName) throws RemoteException {
-        getPerson(passport, firstName, lastName);
+    private Person createRemotePerson(final int passport, final String firstName,
+                                      final String lastName) throws RemoteException {
+        createPerson(passport, firstName, lastName);
         final Person remotePerson = bank.getRemotePerson(passport);
         checkPerson(remotePerson, passport, firstName, lastName);
         return remotePerson;
     }
 
-    private Person getLocalPerson() throws RemoteException {
-        return getLocalPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
+    private Person createLocalPerson() throws RemoteException {
+        return createLocalPerson(GLOBAL_PASSPORT, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME);
     }
 
-    private Person getLocalPerson(final int passport, final String firstName,
-                                  final String lastName) throws RemoteException {
-        getPerson(passport, firstName, lastName);
+    private Person createLocalPerson(final int passport, final String firstName,
+                                     final String lastName) throws RemoteException {
+        createPerson(passport, firstName, lastName);
         final Person localPerson = bank.getLocalPerson(passport);
         checkPerson(localPerson, passport, firstName, lastName);
         return localPerson;
@@ -95,24 +95,24 @@ public class BankTest {
 
     @Test
     public void test01_getRemotePerson() throws RemoteException {
-        getRemotePerson();
+        createRemotePerson();
     }
 
     @Test
     public void test02_getLocalPerson() throws RemoteException {
-        getLocalPerson();
+        createLocalPerson();
     }
 
     @Test
     public void test03_createPersonTwice() throws RemoteException {
-        final Person person = getPerson();
-        assertEquals(person, bank.createPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName));
+        final Person person = createPerson();
+        assertEquals(person, bank.createPerson(GLOBAL_PASSPORT, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME));
     }
 
     @Test
     public void test04_getNotExistingPerson() throws RemoteException {
-        assertNull(bank.getRemotePerson(globalPassport));
-        assertNull(bank.getRemotePerson(globalPassport));
+        assertNull(bank.getRemotePerson(GLOBAL_PASSPORT));
+        assertNull(bank.getRemotePerson(GLOBAL_PASSPORT));
     }
 
     private String toString(final int i) {
@@ -121,12 +121,12 @@ public class BankTest {
 
     @Test
     public void test05_getManyPersons() throws RemoteException {
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < SIZE; i++) {
             final int passport = i;
             final String firstName = toString(i);
-            final String lastName = toString(i + size);
-            getRemotePerson(passport, firstName, lastName);
-            getLocalPerson(passport, firstName, lastName);
+            final String lastName = toString(i + SIZE);
+            createRemotePerson(passport, firstName, lastName);
+            createLocalPerson(passport, firstName, lastName);
         }
     }
 
@@ -135,7 +135,7 @@ public class BankTest {
     }
 
     private void checkAccount(final Account account, final Person person) throws RemoteException {
-        checkAccount(account, person, globalAccountId, globalPassport, 0);
+        checkAccount(account, person, GLOBAL_ACCOUNT_ID, GLOBAL_PASSPORT, 0);
     }
 
     private void checkAccount(final Account account, final Person person,
@@ -143,18 +143,14 @@ public class BankTest {
         assertNotNull(account);
         assertEquals(account, bank.getAccount(accountId, person));
         assertEquals(amount, account.getAmount());
-        if (person instanceof LocalPerson) {
-            assertEquals(accountId, account.getId());
-        } else {
-            assertEquals(getFullAccountId(accountId, passport), account.getId());
-        }
+        assertEquals(getFullAccountId(accountId, passport), account.getId());
     }
 
-    private Account getAccount(Person person) throws RemoteException {
-        return getAccount(person, globalAccountId);
+    private Account createAccount(Person person) throws RemoteException {
+        return createAccount(person, GLOBAL_ACCOUNT_ID);
     }
 
-    private Account getAccount(Person person, final String accountId) throws RemoteException {
+    private Account createAccount(Person person, final String accountId) throws RemoteException {
         final Account account = bank.createAccount(accountId, person);
         checkAccount(account, person);
         return account;
@@ -162,48 +158,48 @@ public class BankTest {
 
     @Test
     public void test06_createAccount() throws RemoteException {
-        getAccount(getPerson());
+        createAccount(createPerson());
     }
 
     @Test
     public void test07_getRemotePersonAccount() throws RemoteException {
-        getAccount(getRemotePerson());
+        createAccount(createRemotePerson());
     }
 
     @Test
     public void test08_getLocalPersonAccount() throws RemoteException {
-        getAccount(getLocalPerson());
+        createAccount(createLocalPerson());
     }
 
     @Test
     public void test09_createAccountTwice() throws RemoteException {
-        final Person person = getPerson();
-        final Account account = getAccount(person);
-        assertEquals(account, bank.createAccount(globalAccountId, person));
+        final Person person = createPerson();
+        final Account account = createAccount(person);
+        assertEquals(account, bank.createAccount(GLOBAL_ACCOUNT_ID, person));
     }
 
     @Test
     public void test10_createRemotePersonAccountTwice() throws RemoteException {
-        final Person remotePerson = getRemotePerson();
-        final Account account = getAccount(remotePerson);
-        assertEquals(account, bank.createAccount(globalAccountId, remotePerson));
+        final Person remotePerson = createRemotePerson();
+        final Account account = createAccount(remotePerson);
+        assertEquals(account, bank.createAccount(GLOBAL_ACCOUNT_ID, remotePerson));
     }
 
     @Test
     public void test11_createLocalPersonAccountTwice() throws RemoteException {
-        final Person localPerson = getLocalPerson();
-        final Account account = getAccount(localPerson);
-        assertEquals(account, bank.createAccount(globalAccountId, localPerson));
+        final Person localPerson = createLocalPerson();
+        final Account account = createAccount(localPerson);
+        assertEquals(account, bank.createAccount(GLOBAL_ACCOUNT_ID, localPerson));
     }
 
     @Test
     public void test12_getNotExistingAccount() throws RemoteException {
-        final Person person = getPerson();
+        final Person person = createPerson();
         final String accountId = toString(100500);
         assertNull(bank.getAccount(accountId, person));
-        final Person remotePerson = getRemotePerson();
+        final Person remotePerson = createRemotePerson();
         assertNull(bank.getAccount(accountId, remotePerson));
-        final Person localPerson = getLocalPerson();
+        final Person localPerson = createLocalPerson();
         assertNull(bank.getAccount(accountId, localPerson));
     }
 
@@ -212,8 +208,8 @@ public class BankTest {
     }
 
     private void addAccounts(Person person, final int flag) throws RemoteException {
-        for (int i = 0; i < size; i++) {
-            assertEquals(Math.max(i, flag), bank.getAccounts(person).size());
+        for (int i = 0; i < SIZE; i++) {
+            assertEquals(Math.max(i, flag), person.getPersonAccounts().size());
             final String accountId = toString(i);
             final Account account = bank.createAccount(accountId, person);
             checkAccount(account, person, accountId, person.getPassport(), 0);
@@ -221,196 +217,199 @@ public class BankTest {
     }
 
     private int getPersonAccountsSize(Person person) throws RemoteException {
-        return bank.getAccounts(person).size();
+        return person.getPersonAccounts().size();
     }
 
     @Test
     public void test13_createManyPersonAccounts() throws RemoteException {
-        final Person person = getPerson();
+        final Person person = createPerson();
         addAccounts(person);
-        addAccounts(person, size);
-        assertEquals(size, getPersonAccountsSize(person));
+        addAccounts(person, SIZE);
+        assertEquals(SIZE, getPersonAccountsSize(person));
     }
 
     @Test
     public void test14_addRemotePersonAccount() throws RemoteException {
-        final Person remotePerson = getRemotePerson();
+        final Person remotePerson = createRemotePerson();
         assertEquals(0, getPersonAccountsSize(remotePerson));
-        getAccount(remotePerson);
+        createAccount(remotePerson);
         assertEquals(1, getPersonAccountsSize(remotePerson));
     }
 
     @Test
     public void test15_addLocalPersonAccount() throws RemoteException {
-        final Person localPerson = getLocalPerson();
+        final Person localPerson = createLocalPerson();
         assertEquals(0, getPersonAccountsSize(localPerson));
-        getAccount(localPerson);
+        createAccount(localPerson);
         assertEquals(1, getPersonAccountsSize(localPerson));
     }
 
     @Test
     public void test16_addManyAccountsToRemotePerson() throws RemoteException {
-        addAccounts(getRemotePerson());
+        addAccounts(createRemotePerson());
     }
 
     @Test
     public void test17_addManyAccountsToLocalPerson() throws RemoteException {
-        addAccounts(getLocalPerson());
+        addAccounts(createLocalPerson());
     }
 
     @Test
     public void test18_addManyAccountsToManyRemotePersons() throws RemoteException {
-        for (int j = 0; j < size; j++) {
+        for (int j = 0; j < SIZE; j++) {
             final int passport = j;
             final String firstName = toString(j);
-            final String lastName = toString(j + size);
-            final Person remotePerson = getRemotePerson(passport, firstName, lastName);
+            final String lastName = toString(j + SIZE);
+            final Person remotePerson = createRemotePerson(passport, firstName, lastName);
             addAccounts(remotePerson);
         }
     }
 
     @Test
     public void test19_addManyAccountsToManyLocalPersons() throws RemoteException {
-        for (int j = 0; j < size; j++) {
+        for (int j = 0; j < SIZE; j++) {
             final int passport = j;
             final String firstName = toString(j);
-            final String lastName = toString(j + size);
-            final Person localPerson = getLocalPerson(passport, firstName, lastName);
+            final String lastName = toString(j + SIZE);
+            final Person localPerson = createLocalPerson(passport, firstName, lastName);
             addAccounts(localPerson);
         }
     }
 
     @Test
     public void test20_getLocalPersonAccountsAddingBeforeCreating() throws RemoteException {
-        for (int j = 0; j < size; j++) {
+        for (int j = 0; j < SIZE; j++) {
             final int passport = j;
             final String firstName = toString(j);
-            final String lastName = toString(j + size);
-            final Person remotePerson = getRemotePerson(passport, firstName, lastName);
+            final String lastName = toString(j + SIZE);
+            final Person remotePerson = createRemotePerson(passport, firstName, lastName);
             addAccounts(remotePerson);
-            final Person localPerson = getLocalPerson(passport, firstName, lastName);
-            assertEquals(size, bank.getAccounts(localPerson).size());
+            final Person localPerson = createLocalPerson(passport, firstName, lastName);
+            assertEquals(SIZE, localPerson.getPersonAccounts().size());
         }
     }
 
     @Test
     public void test21_getLocalPersonAccountsAddingAfterCreating() throws RemoteException {
-        for (int j = 0; j < size; j++) {
+        for (int j = 0; j < SIZE; j++) {
             final int passport = j;
             final String firstName = toString(j);
-            final String lastName = toString(j + size);
-            final Person remotePerson = getRemotePerson(passport, firstName, lastName);
-            final Person localPerson = getLocalPerson(passport, firstName, lastName);
+            final String lastName = toString(j + SIZE);
+            final Person remotePerson = createRemotePerson(passport, firstName, lastName);
+            final Person localPerson = createLocalPerson(passport, firstName, lastName);
             addAccounts(remotePerson);
-            assertEquals(0, bank.getAccounts(localPerson).size());
+            assertEquals(0, localPerson.getPersonAccounts().size());
         }
     }
 
     private void setAmount(Account account) throws RemoteException {
-        setAmount(account, globalAddition);
+        setAmount(account, GLOBAL_ADDITION);
     }
 
     private void setAmount(Account account, final int addition) throws RemoteException {
-        account.setAmount(addition);
-        assertEquals(globalAddition, account.getAmount());
+        account.addAmount(addition);
+        assertEquals(GLOBAL_ADDITION, account.getAmount());
     }
 
     @Test
     public void test22_setAmountInLocalAccountCreatingLocalAccountAfterLocalPerson() throws RemoteException {
-        final Person remotePerson = getRemotePerson();
-        final Person localPerson = getLocalPerson();
-        final Account localAccount = getAccount(localPerson);
-        final Account remoteAccount = getAccount(remotePerson);
+        final Person remotePerson = createRemotePerson();
+        final Person localPerson = createLocalPerson();
+        final Account localAccount = createAccount(localPerson);
+        final Account remoteAccount = createAccount(remotePerson);
         setAmount(localAccount);
         assertEquals(0, remoteAccount.getAmount());
     }
 
     @Test
     public void test23_setAmountInRemoteAccountCreatingRemoteAccountAfterLocalPerson() throws RemoteException {
-        final Person remotePerson = getRemotePerson();
-        final Person localPerson = getLocalPerson();
-        final Account remoteAccount = getAccount(remotePerson);
-        final Account localAccount = bank.getAccount(globalAccountId, localPerson);
-        assertNotNull(localAccount);
-        assertEquals(localAccount, remoteAccount);
-        remoteAccount.setAmount(globalAddition);
-        assertEquals(globalAddition, remoteAccount.getAmount());
-        assertEquals(globalAddition, localAccount.getAmount());
+        final Person remotePerson = createRemotePerson();
+        final Person localPerson = createLocalPerson();
+        final Account remoteAccount = createAccount(remotePerson);
+        final Account localAccount = createAccount(localPerson);
+        setAmount(remoteAccount);
+        assertEquals(GLOBAL_ADDITION, remoteAccount.getAmount());
+        assertEquals(GLOBAL_ADDITION, localAccount.getAmount());
+    }
+
+    Account getAccount(Person person) throws RemoteException {
+        return getAccount(person, GLOBAL_ACCOUNT_ID);
+    }
+
+    Account getAccount(Person person, String accountId) throws RemoteException {
+        Account account = bank.getAccount(accountId, person);
+//        checkAccount(account, person);
+        return account;
     }
 
     @Test
     public void test24_setAmountInRemoteAccountCreatingRemoteAccountBeforeLocalPerson() throws RemoteException {
-        final Person remotePerson = getRemotePerson();
-        final Account remoteAccount = bank.createAccount(globalAccountId, remotePerson);
-        assertNotNull(remoteAccount);
-        Person localPerson = getLocalPerson();
-        Account localAccount = bank.getAccount(globalAccountId, localPerson);
-        assertNotNull(localAccount);
-        remoteAccount.setAmount(globalAddition);
-        assertEquals(getFullAccountId(globalAccountId, remotePerson.getPassport()), remoteAccount.getId());
-        assertEquals(globalAddition, remoteAccount.getAmount());
-        localAccount = bank.getAccount(globalAccountId, localPerson);
-        assertNotNull(localAccount);
+        final Person remotePerson = createRemotePerson();
+        final Account remoteAccount = createAccount(remotePerson);
+        Person localPerson = createLocalPerson();
+        remoteAccount.addAmount(GLOBAL_ADDITION);
+        checkAccount(remoteAccount, remotePerson, GLOBAL_ACCOUNT_ID, GLOBAL_PASSPORT, GLOBAL_ADDITION);
+        Account localAccount = getAccount(localPerson);
         assertEquals(0, localAccount.getAmount());
-        localPerson = bank.getLocalPerson(globalPassport);
-        localAccount = bank.getAccount(globalAccountId, localPerson);
-        assertEquals(globalAddition, localAccount.getAmount());
+        localPerson = bank.getLocalPerson(GLOBAL_PASSPORT);
+        localAccount = bank.getAccount(GLOBAL_ACCOUNT_ID, localPerson);
+        assertEquals(GLOBAL_ADDITION, localAccount.getAmount());
     }
 
     @Test
     public void test25_setAmountOfLocalAccountCreatingRemoteAccountAfterLocalPerson() throws RemoteException {
-        final Person localPerson = getLocalPerson();
-        Account localAccount = bank.createAccount(globalAccountId, localPerson);
+        final Person localPerson = createLocalPerson();
+        Account localAccount = bank.createAccount(GLOBAL_ACCOUNT_ID, localPerson);
         assertNotNull(localAccount);
-        localAccount.setAmount(globalAddition);
-        assertEquals(globalAddition, localAccount.getAmount());
-        localAccount = bank.getAccount(globalAccountId, localPerson);
+        localAccount.addAmount(GLOBAL_ADDITION);
+        assertEquals(GLOBAL_ADDITION, localAccount.getAmount());
+        localAccount = bank.getAccount(GLOBAL_ACCOUNT_ID, localPerson);
         assertNotNull(localAccount);
-        assertEquals(globalAddition, localAccount.getAmount());
-        final Person remotePerson = getRemotePerson();
-        final Account remoteAccount = bank.getAccount(globalAccountId, remotePerson);
+        assertEquals(GLOBAL_ADDITION, localAccount.getAmount());
+        final Person remotePerson = createRemotePerson();
+        final Account remoteAccount = bank.getAccount(GLOBAL_ACCOUNT_ID, remotePerson);
         assertNotNull(remoteAccount);
         assertEquals(0, remoteAccount.getAmount());
     }
 
     @Test
     public void test26_manyAccountsOfOneRemotePerson() throws RemoteException {
-        final Person person = bank.createPerson(globalPassport, GLOBAL_FIRST_NAME, globalLastName);
+        final Person person = bank.createPerson(GLOBAL_PASSPORT, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME);
         assertNotNull(person);
         final List<Person> persons = new ArrayList<>();
-        for (int i = 0; i < size; i++) {
-            persons.add(bank.getRemotePerson(globalPassport));
+        for (int i = 0; i < SIZE; i++) {
+            persons.add(bank.getRemotePerson(GLOBAL_PASSPORT));
         }
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
                 assertNotNull(bank.createAccount(i + "+" + j, persons.get(j)));
             }
         }
-        for (int i = 0; i < size; i++) {
-            assertEquals(size * size, bank.getAccounts(persons.get(i)).size());
+        for (int i = 0; i < SIZE; i++) {
+            assertEquals(SIZE * SIZE, persons.get(i).getPersonAccounts().size());
         }
     }
 
     @Test
     public void test27_setAmountOfManyAccountsOfManyPersons() throws RemoteException {
         final List<Person> persons = new ArrayList<>();
-        for (int i = 0; i < size; i++) {
-            final Person person = bank.createPerson(i, GLOBAL_FIRST_NAME, globalLastName);
+        for (int i = 0; i < SIZE; i++) {
+            final Person person = bank.createPerson(i, GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME);
             assertNotNull(person);
             persons.add(bank.getRemotePerson(i));
         }
         final Map<String, Integer> answer = new HashMap<>();
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
                 final String accountId = i + "+" + j;
                 final Account account = bank.createAccount(accountId, persons.get(j));
                 assertNotNull(account);
-                account.setAmount(i + j);
+                account.addAmount(i + j);
                 answer.put(accountId, i + j);
             }
         }
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
                 final String accountId = i + "+" + j;
                 assertEquals((int) answer.get(accountId), bank.getAccount(accountId, persons.get(j)).getAmount());
             }
@@ -419,35 +418,35 @@ public class BankTest {
 
     @Test
     public void test28_setAmountTwice() throws RemoteException {
-        for (var i = 0; i < size; ++i) {
-            final Person person = bank.createPerson(globalPassport + i,
-                    GLOBAL_FIRST_NAME + i, globalLastName + i);
+        for (var i = 0; i < SIZE; ++i) {
+            final Person person = bank.createPerson(GLOBAL_PASSPORT + i,
+                    GLOBAL_FIRST_NAME + i, GLOBAL_LAST_NAME + i);
             assertNotNull(person);
         }
 
-        for (var i = 0; i < size; i++) {
-            final Person remotePerson = bank.getRemotePerson(globalPassport + i);
-            for (var j = 0; j < size; j++) {
+        for (var i = 0; i < SIZE; i++) {
+            final Person remotePerson = bank.getRemotePerson(GLOBAL_PASSPORT + i);
+            for (var j = 0; j < SIZE; j++) {
                 bank.createAccount("Account" + j, remotePerson);
             }
         }
 
-        for (var i = 0; i < size; i++) {
-            final Person person = bank.getRemotePerson(globalPassport + i);
-            for (var j = 0; j < size; j++) {
+        for (var i = 0; i < SIZE; i++) {
+            final Person person = bank.getRemotePerson(GLOBAL_PASSPORT + i);
+            for (var j = 0; j < SIZE; j++) {
                 final Account account = bank.getAccount("Account" + j, person);
                 assertNotNull(account);
-                account.setAmount(account.getAmount() + globalAddition);
-                assertEquals(globalAddition, account.getAmount());
+                account.addAmount(account.getAmount() + GLOBAL_ADDITION);
+                assertEquals(GLOBAL_ADDITION, account.getAmount());
             }
         }
 
-        for (var i = 0; i < size; i++) {
-            final Person person = bank.getRemotePerson(globalPassport + i);
-            for (var j = 0; j < size; j++) {
+        for (var i = 0; i < SIZE; i++) {
+            final Person person = bank.getRemotePerson(GLOBAL_PASSPORT + i);
+            for (var j = 0; j < SIZE; j++) {
                 final Account account = bank.getAccount("Account" + j, person);
                 assertNotNull(account);
-                account.setAmount(account.getAmount() - globalAddition);
+                account.addAmount(-GLOBAL_ADDITION);
                 assertEquals(0, account.getAmount());
             }
         }
@@ -455,27 +454,27 @@ public class BankTest {
 
     @Test
     public void test29_client() throws RemoteException {
-        Client.main(GLOBAL_FIRST_NAME, globalLastName,
-                toString(globalPassport), globalAccountId, toString(globalAddition));
-        final Person person = bank.getRemotePerson(globalPassport);
+        Client.main(GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME,
+                toString(GLOBAL_PASSPORT), GLOBAL_ACCOUNT_ID, toString(GLOBAL_ADDITION));
+        final Person person = bank.getRemotePerson(GLOBAL_PASSPORT);
         checkPerson(person);
-        final Account account = bank.getAccount(globalAccountId, person);
-        checkAccount(account, person, globalAccountId, globalPassport, globalAddition);
+        final Account account = bank.getAccount(GLOBAL_ACCOUNT_ID, person);
+        checkAccount(account, person, GLOBAL_ACCOUNT_ID, GLOBAL_PASSPORT, GLOBAL_ADDITION);
 
-        Client.main(GLOBAL_FIRST_NAME + "incorrect", globalLastName + "incorrect",
-                toString(globalPassport), globalAccountId, toString(globalAddition));
+        Client.main(GLOBAL_FIRST_NAME + "incorrect", GLOBAL_LAST_NAME + "incorrect",
+                toString(GLOBAL_PASSPORT), GLOBAL_ACCOUNT_ID, toString(GLOBAL_ADDITION));
         checkPerson(person);
-        checkAccount(account, person, globalAccountId, globalPassport, globalAddition);
+        checkAccount(account, person, GLOBAL_ACCOUNT_ID, GLOBAL_PASSPORT, GLOBAL_ADDITION);
 
-        Client.main(GLOBAL_FIRST_NAME, globalLastName,
-                toString(globalPassport), globalAccountId, toString(globalAddition));
+        Client.main(GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME,
+                toString(GLOBAL_PASSPORT), GLOBAL_ACCOUNT_ID, toString(GLOBAL_ADDITION));
         checkPerson(person);
-        checkAccount(account, person, globalAccountId, globalPassport, 2 * globalAddition);
+        checkAccount(account, person, GLOBAL_ACCOUNT_ID, GLOBAL_PASSPORT, 2 * GLOBAL_ADDITION);
 
-        Client.main(GLOBAL_FIRST_NAME, globalLastName,
-                toString(globalPassport), globalAccountId);
+        Client.main(GLOBAL_FIRST_NAME, GLOBAL_LAST_NAME,
+                toString(GLOBAL_PASSPORT), GLOBAL_ACCOUNT_ID);
         checkPerson(person);
-        checkAccount(account, person, globalAccountId, globalPassport, 2 * globalAddition);
+        checkAccount(account, person, GLOBAL_ACCOUNT_ID, GLOBAL_PASSPORT, 2 * GLOBAL_ADDITION);
 
     }
 

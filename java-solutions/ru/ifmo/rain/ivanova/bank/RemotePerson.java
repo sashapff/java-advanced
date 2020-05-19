@@ -1,9 +1,11 @@
 package ru.ifmo.rain.ivanova.bank;
 
-import java.rmi.Remote;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class RemotePerson extends PersonImpl implements Remote  {
+class RemotePerson extends AbstractPerson {
+
     RemotePerson(int passport, String firstName, String lastName) {
-        super(passport, firstName, lastName);
+        super(passport, firstName, lastName, new ConcurrentHashMap<>());
     }
+
 }

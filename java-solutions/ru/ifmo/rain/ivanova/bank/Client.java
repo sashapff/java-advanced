@@ -54,7 +54,7 @@ public class Client {
             System.out.println("Account already exists");
         }
 
-        account.setAmount(account.getAmount() + addition);
+        account.addAmount(addition);
 
         System.out.println("Person first name: " + person.getFirstName());
         System.out.println("Person last name: " + person.getLastName());

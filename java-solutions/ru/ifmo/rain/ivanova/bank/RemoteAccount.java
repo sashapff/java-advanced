@@ -23,8 +23,8 @@ public class RemoteAccount implements Account {
         return amount;
     }
 
-    public synchronized void setAmount(final int amount) {
+    public synchronized void addAmount(final int amount) {
         System.out.println("Setting amount of money for account " + id);
-        this.amount = amount;
+        this.amount += amount;
     }
 }

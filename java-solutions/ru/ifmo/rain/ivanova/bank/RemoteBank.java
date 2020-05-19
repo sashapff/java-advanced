@@ -1,19 +1,17 @@
 package ru.ifmo.rain.ivanova.bank;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 public class RemoteBank implements Bank {
     private final int port;
     private final ConcurrentMap<String, Account> accounts = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, Person> persons = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Integer, Set<String>> personAccounts = new ConcurrentHashMap<>();
 
     RemoteBank(final int port) {
         this.port = port;
@@ -31,6 +29,23 @@ public class RemoteBank implements Bank {
         return false;
     }
 
+    private <T extends Remote> void exportObject(final T o, final int port) {
+        try {
+            UnicastRemoteObject.exportObject(o, port);
+        } catch (RemoteException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void throwException(final UncheckedIOException e) throws RemoteException {
+        IOException cause = e.getCause();
+        if (cause instanceof RemoteException) {
+            throw (RemoteException) cause;
+        } else {
+            throw e;
+        }
+    }
+
     public Account createAccount(final String id, Person person) throws RemoteException {
         if (emptyPerson(person)) {
             return null;
@@ -39,15 +54,15 @@ public class RemoteBank implements Bank {
         System.out.println("Creating account " + fullAccountId);
         final Account account = new RemoteAccount(fullAccountId);
         if (accounts.putIfAbsent(fullAccountId, account) == null) {
-            UnicastRemoteObject.exportObject(account, port);
-            Set<String> acs = personAccounts.get(person.getPassport());
-            if (acs == null) {
-                System.out.println("Person doesn't exist");
-                return null;
-            }
-            acs.add(id);
-            if (person instanceof LocalPerson) {
-                ((LocalPerson) person).addAccount(id, new RemoteAccount(id));
+            try {
+                exportObject(account, port);
+                if (person instanceof LocalPerson) {
+                    person.addAccount(id, new RemoteAccount(account.getId()));
+                } else {
+                    person.addAccount(id, account);
+                }
+            } catch (UncheckedIOException e) {
+                throwException(e);
             }
         }
         return getAccount(id, person);
@@ -59,16 +74,16 @@ public class RemoteBank implements Bank {
         }
         String fullAccountId = getFullAccountId(id, person.getPassport());
         System.out.println("Retrieving account " + fullAccountId);
+        if (person instanceof LocalPerson) {
+            Account localAccount = person.getAccount(id);
+            if (localAccount != null) {
+                return localAccount;
+            }
+        }
         Account account = accounts.get(fullAccountId);
         if (account == null) {
             System.out.println("Account doesn't exist");
             return null;
-        }
-        if (person instanceof LocalPerson) {
-            Account localAccount = ((LocalPerson) person).getAccount(id);
-            if (localAccount != null) {
-                return localAccount;
-            }
         }
         return account;
     }
@@ -78,9 +93,12 @@ public class RemoteBank implements Bank {
         System.out.println("Creating person " + passport);
         final Person person = new RemotePerson(passport, firstName, lastName);
         if (persons.putIfAbsent(passport, person) == null) {
-            UnicastRemoteObject.exportObject(person, port);
-            personAccounts.put(passport, new ConcurrentSkipListSet<>());
-            return person;
+            try {
+                exportObject(person, port);
+                return person;
+            } catch (UncheckedIOException e) {
+                throwException(e);
+            }
         }
         return persons.get(passport);
     }
@@ -95,27 +113,8 @@ public class RemoteBank implements Bank {
     public Person getLocalPerson(int passport) throws RemoteException {
         System.out.println("Retrieving local person " + passport);
         Person person = persons.get(passport);
-        if (person == null) {
-            return null;
-        }
-        Map<String, Account> localAccounts = new HashMap<>();
-        getAccounts(person).forEach(i -> {
-            try {
-                Account account = getAccount(i, person);
-                localAccounts.put(i, new RemoteAccount(i, account.getAmount()));
-            } catch (RemoteException e) {
-                System.out.println("Can't get account " + e.getMessage());
-            }
-        });
-        return new LocalPerson(passport, person.getFirstName(), person.getLastName(), localAccounts);
-    }
-
-    @Override
-    public Set<String> getAccounts(Person person) throws RemoteException {
-        if (person instanceof LocalPerson) {
-            return ((LocalPerson) person).getAccounts();
-        }
-        return personAccounts.get(person.getPassport());
+        return person == null ? null : new LocalPerson(person.getPassport(),
+                person.getFirstName(), person.getLastName(), person.getPersonAccounts());
     }
 
 }

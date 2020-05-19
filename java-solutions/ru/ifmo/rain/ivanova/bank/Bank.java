@@ -46,11 +46,4 @@ public interface Bank extends Remote {
      */
     Person getLocalPerson(int passport) throws RemoteException;
 
-    /**
-     * Returns accounts by person.
-     *
-     * @param person person to get accounts.
-     * @return acconts of person.
-     */
-    Set<String> getAccounts(Person person) throws RemoteException;
 }

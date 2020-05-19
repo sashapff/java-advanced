@@ -10,5 +10,5 @@ public interface Account extends Remote {
     int getAmount() throws RemoteException;
 
     /** Sets amount of money at the account. */
-    void setAmount(int amount) throws RemoteException;
+    void addAmount(int amount) throws RemoteException;
 }
