@@ -4,19 +4,22 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 abstract class AbstractPerson implements Person {
+    // :NOTE: Модификаторы доступа
     final int passport;
     final String firstName;
     final String lastName;
     final ConcurrentHashMap<String, Account> accounts;
 
-    AbstractPerson(int passport, String firstName, String lastName, ConcurrentHashMap<String, Account> accounts) {
+
+    AbstractPerson(final int passport, final String firstName, final String lastName, final ConcurrentHashMap<String, Account> accounts) {
+        // :NOTE: Копипаста
         this.passport = passport;
         this.firstName = firstName;
         this.lastName = lastName;
         this.accounts = accounts;
     }
 
-    AbstractPerson(int passport, String firstName, String lastName) {
+    AbstractPerson(final int passport, final String firstName, final String lastName) {
         this.passport = passport;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -39,12 +42,12 @@ abstract class AbstractPerson implements Person {
     }
 
     @Override
-    public void addAccount(String id, Account account) {
+    public void addAccount(final String id, final Account account) {
         accounts.putIfAbsent(id, account);
     }
 
     @Override
-    public Account getAccount(String id) {
+    public Account getAccount(final String id) {
         return accounts.get(id);
     }
 

@@ -71,6 +71,7 @@ public class RemoteBank implements Bank {
     @Override
     public Person createPerson(int passport, String firstName, String lastName) {
         System.out.println("Creating person " + passport);
+        // :NOTE: Лишние действия
         final Person person = new RemotePerson(passport, firstName, lastName);
         try {
             if (persons.putIfAbsent(passport, person) == null) {
