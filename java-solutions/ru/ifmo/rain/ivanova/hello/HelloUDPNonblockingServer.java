@@ -62,12 +62,12 @@ public class HelloUDPNonblockingServer implements HelloServer {
 
     private void read(final ByteBuffer buffer, final SocketAddress socketAddress, final SelectionKey key) {
         String message = "Hello, " + StandardCharsets.UTF_8.decode(buffer.flip()).toString();
+        final byte[] bytes = HelloUDPUtills.getBytes(message);
         synchronized (fill) {
             if (fill.isEmpty()) {
                 HelloUDPUtills.changeInterestToWrite(key, selector);
             }
-            fill.add(new PairBuffer(buffer.clear().put(HelloUDPUtills.getBytes(message)).flip(),
-                    socketAddress));
+            fill.add(new PairBuffer(buffer.clear().put(bytes).flip(), socketAddress));
         }
     }
 
