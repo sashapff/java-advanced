@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class RemotePerson extends AbstractPerson {
 
-    RemotePerson(int passport, String firstName, String lastName) {
+    RemotePerson(final int passport, final String firstName, final String lastName) {
         super(passport, firstName, lastName, new ConcurrentHashMap<>());
     }
 

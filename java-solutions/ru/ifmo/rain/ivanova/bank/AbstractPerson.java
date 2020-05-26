@@ -4,23 +4,21 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 abstract class AbstractPerson implements Person {
-    final int passport;
-    final String firstName;
-    final String lastName;
-    final ConcurrentHashMap<String, Account> accounts;
+    private final int passport;
+    private final String firstName;
+    private final String lastName;
+    private final ConcurrentHashMap<String, Account> accounts;
 
-    AbstractPerson(int passport, String firstName, String lastName, ConcurrentHashMap<String, Account> accounts) {
+    AbstractPerson(final int passport, final String firstName, final String lastName,
+                   final ConcurrentHashMap<String, Account> accounts) {
         this.passport = passport;
         this.firstName = firstName;
         this.lastName = lastName;
         this.accounts = accounts;
     }
 
-    AbstractPerson(int passport, String firstName, String lastName) {
-        this.passport = passport;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.accounts = new ConcurrentHashMap<>();
+    AbstractPerson(final int passport, final String firstName, final String lastName) {
+        this(passport, firstName, lastName, new ConcurrentHashMap<>());
     }
 
     @Override
@@ -39,12 +37,12 @@ abstract class AbstractPerson implements Person {
     }
 
     @Override
-    public void addAccount(String id, Account account) {
-        accounts.putIfAbsent(id, account);
+    public void addAccount(final String id, final Account account) {
+        accounts.put(id, account);
     }
 
     @Override
-    public Account getAccount(String id) {
+    public Account getAccount(final String id) {
         return accounts.get(id);
     }
 

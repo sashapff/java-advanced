@@ -15,7 +15,7 @@ public class Client {
     public static void main(final String... args) throws RemoteException {
         final Bank bank;
         try {
-            Registry registry = LocateRegistry.getRegistry(4040);
+            final Registry registry = LocateRegistry.getRegistry(4040);
             bank = (Bank) registry.lookup("bank");
         } catch (final NotBoundException e) {
             System.out.println("Bank is not bound");
@@ -28,11 +28,11 @@ public class Client {
             return;
         }
 
-        String firstName = args[0];
-        String lastName = args[1];
-        int passport = parseArgument(args[2]);
-        String accountId = args[3];
-        int addition = parseArgument(args[4]);
+        final String firstName = args[0];
+        final String lastName = args[1];
+        final int passport = parseArgument(args[2]);
+        final String accountId = args[3];
+        final int addition = parseArgument(args[4]);
 
         Person person = bank.getRemotePerson(passport);
         if (person == null) {

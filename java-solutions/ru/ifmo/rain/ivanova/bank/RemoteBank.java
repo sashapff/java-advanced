@@ -1,5 +1,7 @@
 package ru.ifmo.rain.ivanova.bank;
 
+import java.io.UncheckedIOException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,11 +16,7 @@ public class RemoteBank implements Bank {
         this.port = port;
     }
 
-    private String getFullAccountId(final String id, final int password) {
-        return password + ":" + id;
-    }
-
-    private boolean emptyPerson(Person person) {
+    private boolean emptyPerson(final Person person) {
         if (person == null) {
             System.out.println("Person cant't be null");
             return true;
@@ -26,73 +24,77 @@ public class RemoteBank implements Bank {
         return false;
     }
 
-    public Account createAccount(final String id, Person person) throws RemoteException {
+    private <T extends Remote> T checkedExport(final T t) {
+        try {
+            UnicastRemoteObject.exportObject(t, port);
+        } catch (RemoteException e) {
+            throw new UncheckedIOException(e);
+        }
+        return t;
+    }
+
+    public Account createAccount(final String id, final Person person) throws RemoteException {
         if (emptyPerson(person)) {
             return null;
         }
-        String fullAccountId = getFullAccountId(id, person.getPassport());
+        final String fullAccountId = Utils.getFullAccountId(id, person.getPassport());
         System.out.println("Creating account " + fullAccountId);
-        final Account account = new RemoteAccount(fullAccountId);
         try {
-            if (accounts.putIfAbsent(fullAccountId, account) == null) {
-                UnicastRemoteObject.exportObject(account, port);
-                if (person instanceof LocalPerson) {
-                    person.addAccount(id, new RemoteAccount(account.getId()));
-                } else {
-                    person.addAccount(id, account);
+            accounts.computeIfAbsent(fullAccountId, ignored -> {
+                final Account account = new RemoteAccount(fullAccountId);
+                checkedExport(account);
+                try {
+                    Account accountToAdd = account;
+                    if (person instanceof LocalPerson) {
+                        accountToAdd = new RemoteAccount(fullAccountId);
+                    }
+                    person.addAccount(id, accountToAdd);
+                } catch (final RemoteException e) {
+                    throw new UncheckedIOException(e);
                 }
-            }
-        } catch (RemoteException ignored) {
-            return null;
+                return account;
+            });
+        } catch (UncheckedIOException e) {
+            Utils.handleException(e);
         }
         return getAccount(id, person);
     }
 
-    public Account getAccount(final String id, Person person) throws RemoteException {
+    public Account getAccount(final String id, final Person person) throws RemoteException {
         if (emptyPerson(person)) {
             return null;
         }
-        String fullAccountId = getFullAccountId(id, person.getPassport());
+        final String fullAccountId = Utils.getFullAccountId(id, person.getPassport());
         System.out.println("Retrieving account " + fullAccountId);
         if (person instanceof LocalPerson) {
-            Account localAccount = person.getAccount(id);
-            if (localAccount != null) {
-                return localAccount;
-            }
+            final Account localAccount = person.getAccount(id);
+            return localAccount != null ? localAccount : accounts.get(fullAccountId);
         }
-        Account account = accounts.get(fullAccountId);
-        if (account == null) {
-            System.out.println("Account doesn't exist");
-            return null;
-        }
-        return account;
+        return accounts.get(fullAccountId);
     }
 
     @Override
-    public Person createPerson(int passport, String firstName, String lastName) {
+    public Person createPerson(final int passport, final String firstName, final String lastName) throws RemoteException {
         System.out.println("Creating person " + passport);
-        final Person person = new RemotePerson(passport, firstName, lastName);
         try {
-            if (persons.putIfAbsent(passport, person) == null) {
-                UnicastRemoteObject.exportObject(person, port);
-                return person;
-            }
-        } catch (RemoteException e) {
-            return null;
+            persons.computeIfAbsent(passport, ignored ->
+                    checkedExport(new RemotePerson(passport, firstName, lastName)));
+        } catch (UncheckedIOException e) {
+            Utils.handleException(e);
         }
         return persons.get(passport);
     }
 
     @Override
-    public Person getRemotePerson(int passport) {
+    public Person getRemotePerson(final int passport) {
         System.out.println("Retrieving remote person " + passport);
         return persons.get(passport);
     }
 
     @Override
-    public Person getLocalPerson(int passport) throws RemoteException {
+    public Person getLocalPerson(final int passport) throws RemoteException {
         System.out.println("Retrieving local person " + passport);
-        Person person = persons.get(passport);
+        final Person person = persons.get(passport);
         return person == null ? null : new LocalPerson(person.getPassport(),
                 person.getFirstName(), person.getLastName(), person.getPersonAccounts());
     }
