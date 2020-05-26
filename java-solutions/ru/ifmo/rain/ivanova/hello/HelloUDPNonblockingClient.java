@@ -1,6 +1,7 @@
 package ru.ifmo.rain.ivanova.hello;
 
 import info.kgeorgiy.java.advanced.hello.HelloClient;
+import ru.ifmo.rain.ivanova.hello.HelloUDPUtills;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -16,8 +17,6 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class HelloUDPNonblockingClient implements HelloClient {
-    private Integer counter = 0;
-
     private class Context {
         ByteBuffer buffer;
         int thread;
@@ -46,10 +45,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
             if (context.request != requests) {
                 key.interestOps(SelectionKey.OP_WRITE);
             } else {
-                synchronized (counter) {
-                    key.channel().close();
-                    counter++;
-                }
+                key.channel().close();
             }
 //            System.out.println("good" + context.request + " " + requests);
         } else {
@@ -90,7 +86,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
                 e.printStackTrace();
             }
         }
-        while (!Thread.interrupted() && counter != threads) {
+        while (!Thread.interrupted() && !selector.keys().isEmpty()) {
             try {
                 selector.select(200);
                 if (selector.selectedKeys().isEmpty()) {
