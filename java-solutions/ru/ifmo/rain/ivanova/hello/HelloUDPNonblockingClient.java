@@ -80,7 +80,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
                     System.out.println("Can't open DatagramChannel");
                 }
             }
-            while (!Thread.interrupted() && selector.isOpen()) {
+            while (!Thread.interrupted() && selector.isOpen() && !selector.keys().isEmpty()) {
                 try {
                     selector.select(100);
                     if (!selector.selectedKeys().isEmpty()) {
