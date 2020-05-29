@@ -51,7 +51,7 @@ public class WebCrawler implements Crawler {
             run();
         }
 
-        private void run() {
+        synchronized private void run() {
             final Runnable task = tasks.poll();
             if (task != null) {
                 readyToRun--;
