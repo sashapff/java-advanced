@@ -96,11 +96,7 @@ public class RemoteBank implements Bank {
     @Override
     public Person getRemotePerson(final long passport) {
         System.out.println("Retrieving remote person " + passport);
-        final Person person = persons.get(passport);
-        if (person == null) {
-            return null;
-        }
-        return person;
+        return persons.get(passport);
     }
 
     @Override

@@ -15,7 +15,7 @@ abstract class AbstractAccount implements Account {
         this.amount = amount;
     }
 
-    AbstractAccount(final Account account) throws RemoteException {
+    AbstractAccount(final RemoteAccount account)  {
         this(account.getId(), account.getAmount());
     }
 

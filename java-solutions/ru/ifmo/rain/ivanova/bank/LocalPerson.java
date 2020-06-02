@@ -7,15 +7,9 @@ import java.util.Map;
 class LocalPerson extends AbstractPerson implements Serializable {
 
     LocalPerson(final long passport, final String firstName, final String lastName,
-                final Map<String, Account> accounts) {
+                final Map<String, RemoteAccount> accounts) {
         super(passport, firstName, lastName);
-        accounts.forEach((key, value) -> {
-            try {
-                addAccount(new LocalAccount(value), key);
-            } catch (RemoteException e) {
-                System.out.println("Can't add account " + e.getMessage());
-            }
-        });
+        accounts.forEach((key, value) -> addAccount(new LocalAccount(value), key));
     }
 
     @Override

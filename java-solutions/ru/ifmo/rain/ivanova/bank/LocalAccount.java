@@ -11,7 +11,7 @@ public class LocalAccount extends AbstractAccount {
         super(id, amount);
     }
 
-    public LocalAccount(Account account) throws RemoteException {
+    public LocalAccount(RemoteAccount account) {
         super(account);
     }
 }
