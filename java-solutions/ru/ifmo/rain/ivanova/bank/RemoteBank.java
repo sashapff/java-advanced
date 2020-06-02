@@ -67,7 +67,7 @@ public class RemoteBank implements Bank {
         final String fullAccountId = Utils.getFullAccountId(id, person.getPassport());
         System.out.println("Retrieving account " + fullAccountId);
         if (person instanceof LocalPerson) {
-            final Account account =  person.getAccount(id);
+            final Account account = person.getAccount(id);
             if (account != null) {
                 return account;
             }
@@ -75,8 +75,7 @@ public class RemoteBank implements Bank {
         return accounts.get(fullAccountId);
     }
 
-    @Override
-    public Person createRemotePerson(final long passport, final String firstName, final String lastName) throws RemoteException {
+    private void createPerson(final long passport, final String firstName, final String lastName) throws RemoteException {
         System.out.println("Creating person " + passport);
         try {
             persons.computeIfAbsent(passport, ignored ->
@@ -84,39 +83,37 @@ public class RemoteBank implements Bank {
         } catch (UncheckedIOException e) {
             Utils.handleException(e);
         }
+    }
+
+    @Override
+    public Person createRemotePerson(final long passport, final String firstName, final String lastName) throws RemoteException {
+        createPerson(passport, firstName, lastName);
         return persons.get(passport);
     }
 
     @Override
     public Person createLocalPerson(final long passport, final String firstName, final String lastName) throws RemoteException {
-        System.out.println("Creating person " + passport);
-        try {
-            persons.computeIfAbsent(passport, ignored ->
-                    checkedExport(new RemotePerson(passport, firstName, lastName)));
-        } catch (UncheckedIOException e) {
-            Utils.handleException(e);
-        }
+        createPerson(passport, firstName, lastName);
         return new LocalPerson(passport, firstName, lastName, new ConcurrentHashMap<>());
     }
 
     @Override
-    public Person getRemotePerson(final long passport) throws RemoteException {
+    public Person getRemotePerson(final long passport) {
         System.out.println("Retrieving remote person " + passport);
         final Person person = persons.get(passport);
         if (person == null) {
             return null;
         }
-        return person instanceof LocalPerson
-                ? new RemotePerson(passport, person.getFirstName(), person.getLastName())
-                : person;
+        return person;
     }
 
     @Override
     public Person getLocalPerson(final long passport) throws RemoteException {
         System.out.println("Retrieving local person " + passport);
         final Person person = persons.get(passport);
-        return person == null ? null : new LocalPerson(person.getPassport(),
-                person.getFirstName(), person.getLastName(), person.getPersonAccounts());
+        return person instanceof LocalPerson
+                ? person
+                : new LocalPerson(person.getPassport(), person.getFirstName(), person.getLastName(), person.getPersonAccounts());
     }
 
 }
