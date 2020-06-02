@@ -111,9 +111,9 @@ public class RemoteBank implements Bank {
     public Person getLocalPerson(final long passport) throws RemoteException {
         System.out.println("Retrieving local person " + passport);
         final Person person = persons.get(passport);
-        return person instanceof LocalPerson
-                ? person
-                : new LocalPerson(person.getPassport(), person.getFirstName(), person.getLastName(), person.getPersonAccounts());
+//        return person instanceof LocalPerson
+//                ? person
+                return new LocalPerson(person.getPassport(), person.getFirstName(), person.getLastName(), person.getPersonAccounts());
     }
 
 }
