@@ -18,6 +18,6 @@ public interface Person extends Remote {
 
     Account getAccount(final String id) throws RemoteException;
 
-    Map<String, Account> getPersonAccounts() throws RemoteException;
+    Map<String, RemoteAccount> getPersonAccounts() throws RemoteException;
 
 }

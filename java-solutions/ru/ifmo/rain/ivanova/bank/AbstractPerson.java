@@ -7,9 +7,9 @@ abstract class AbstractPerson implements Person {
     private final long passport;
     private final String firstName;
     private final String lastName;
-    private final ConcurrentHashMap<String, Account> accounts;
+    private final ConcurrentHashMap<String, RemoteAccount> accounts;
 
-    AbstractPerson(final long passport, final String firstName, final String lastName, final ConcurrentHashMap<String, Account> accounts) {
+    AbstractPerson(final long passport, final String firstName, final String lastName, final ConcurrentHashMap<String, RemoteAccount> accounts) {
         this.passport = passport;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -38,7 +38,7 @@ abstract class AbstractPerson implements Person {
     @Override
     public abstract void addAccount(final String id, final Account account, final String fullAccountId);
 
-    void addAccount(final Account account, final String id) {
+    void addAccount(final RemoteAccount account, final String id) {
         accounts.put(id, account);
     }
 
@@ -48,7 +48,7 @@ abstract class AbstractPerson implements Person {
     }
 
     @Override
-    public Map<String, Account> getPersonAccounts() {
+    public Map<String, RemoteAccount> getPersonAccounts() {
         return Map.copyOf(accounts);
     }
 
