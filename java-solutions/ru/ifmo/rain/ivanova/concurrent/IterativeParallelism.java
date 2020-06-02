@@ -252,4 +252,5 @@ public class IterativeParallelism implements AdvancedIP {
                               final Monoid<R> monoid) throws InterruptedException {
         return run(threads, values, stream -> reduceMap(stream, monoid, lift), stream -> reduceStream(stream, monoid));
     }
+    
 }
