@@ -71,8 +71,8 @@ public class IterativeParallelism implements AdvancedIP {
                     try {
                         workers.get(i).join();
                     } catch (final InterruptedException e1) {
-                        exception.addSuppressed(e1);
                         i--;
+                        exception.addSuppressed(e1);
                     }
                 }
                 throw exception;
