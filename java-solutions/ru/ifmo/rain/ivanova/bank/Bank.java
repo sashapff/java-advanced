@@ -23,12 +23,20 @@ public interface Bank extends Remote {
 
 
     /**
-     * Creates a new person with specified identifier if it is not already exists.
+     * Creates a new remote person with specified identifier if it is not already exists.
      *
-     * @param passport person passport number
-     * @return created or existing person.
+     * @param passport remote person passport number
+     * @return created or existing remote person.
      */
-    Person createPerson(final int passport, final String firstName, final String lastName) throws RemoteException;
+    Person createRemotePerson(final long passport, final String firstName, final String lastName) throws RemoteException;
+
+    /**
+     * Creates a new local person with specified identifier if it is not already exists.
+     *
+     * @param passport local person passport number
+     * @return created or existing local person.
+     */
+    Person createLocalPerson(final long passport, final String firstName, final String lastName) throws RemoteException;
 
     /**
      * Returns remote person by passport number.
@@ -36,7 +44,7 @@ public interface Bank extends Remote {
      * @param passport passport number
      * @return person with specified identifier or {@code null} if such person does not exists.
      */
-    Person getRemotePerson(final int passport) throws RemoteException;
+    Person getRemotePerson(final long passport) throws RemoteException;
 
     /**
      * Returns local person by passport number.
@@ -44,6 +52,6 @@ public interface Bank extends Remote {
      * @param passport passport number
      * @return person with specified identifier or {@code null} if such person does not exists.
      */
-    Person getLocalPerson(final int passport) throws RemoteException;
+    Person getLocalPerson(final long passport) throws RemoteException;
 
 }

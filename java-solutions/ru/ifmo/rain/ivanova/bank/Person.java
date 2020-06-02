@@ -6,7 +6,7 @@ import java.util.Map;
 
 public interface Person extends Remote {
     /** Returns person passport number. */
-    int getPassport() throws RemoteException;
+    long getPassport() throws RemoteException;
 
     /** Returns person first name. */
     String getFirstName() throws RemoteException;

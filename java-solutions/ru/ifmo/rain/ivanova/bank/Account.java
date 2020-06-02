@@ -7,8 +7,8 @@ public interface Account extends Remote {
     String getId() throws RemoteException;
 
     /** Returns amount of money at the account. */
-    int getAmount() throws RemoteException;
+    long getAmount() throws RemoteException;
 
     /** Sets amount of money at the account. */
-    void addAmount(final int amount) throws RemoteException;
+    void addAmount(final long amount) throws RemoteException;
 }

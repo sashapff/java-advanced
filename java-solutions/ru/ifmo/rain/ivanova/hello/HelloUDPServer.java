@@ -53,24 +53,12 @@ public class HelloUDPServer implements HelloServer {
     @Override
     public void close() {
         datagramSocket.close();
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(100, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
-            System.out.println("Can't terminate ExecutorService " + e.getMessage());
-        }
+        HelloUDPUtills.closeExecutorService(executorService);
     }
 
     public static void main(final String[] args) {
-        if (args == null || args.length != 2 || Arrays.stream(args).anyMatch(Objects::isNull)) {
-            System.out.println("Incorrect arguments");
-            return;
-        }
         try (final HelloUDPServer server = new HelloUDPServer()) {
-            server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
-            System.out.println("Enter something to close server");
-            new Scanner(System.in).next();
-        } catch (Exception ignored) {
+            HelloUDPUtills.main(args, server);
         }
     }
 }

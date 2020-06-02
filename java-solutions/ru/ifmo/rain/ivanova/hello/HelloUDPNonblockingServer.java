@@ -11,10 +11,11 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class HelloUDPNonblockingServer implements HelloServer {
     private Selector selector;
@@ -22,6 +23,9 @@ public class HelloUDPNonblockingServer implements HelloServer {
     private int bufferSize;
     private ExecutorService executorService;
     private ExecutorService worker;
+    private SelectionKey key;
+
+    private byte[] bytes;
 
     private class PairBuffer {
         ByteBuffer data;
@@ -33,63 +37,67 @@ public class HelloUDPNonblockingServer implements HelloServer {
         }
     }
 
-    private final Queue<ByteBuffer> empty = new ArrayDeque<>();
+    private final Queue<PairBuffer> empty = new ArrayDeque<>();
     private final Queue<PairBuffer> fill = new ArrayDeque<>();
 
     private void fillEmpty(final int threads) {
         for (int i = 0; i < threads; i++) {
-            empty.add(ByteBuffer.allocate(bufferSize));
+            empty.add(new PairBuffer(ByteBuffer.allocate(bufferSize), new InetSocketAddress(0)));
         }
     }
 
-    private ByteBuffer getEmpty(final SelectionKey key) {
+    private PairBuffer getEmpty() {
         synchronized (empty) {
-            if (empty.size() == 1) {
+            PairBuffer buffer = empty.remove();
+            if (empty.isEmpty()) {
                 HelloUDPUtills.changeInterestFromRead(key, selector);
             }
-            return empty.remove();
+            return buffer;
         }
     }
 
-    private PairBuffer getFill(final SelectionKey key) {
+    private PairBuffer getFill() {
         synchronized (fill) {
-            if (fill.size() == 1) {
+            PairBuffer buffer = fill.remove();
+            if (fill.isEmpty()) {
                 HelloUDPUtills.changeInterestFromWrite(key, selector);
             }
-            return fill.remove();
+            return buffer;
         }
     }
 
-    private void read(final ByteBuffer buffer, final SocketAddress socketAddress, final SelectionKey key) {
-        String message = "Hello, " + StandardCharsets.UTF_8.decode(buffer.flip()).toString();
-        final byte[] bytes = HelloUDPUtills.getBytes(message);
+    private void read(final PairBuffer buffer, final SocketAddress socketAddress) {
+        byte[] bytes = HelloUDPUtills.getBytes("Hello, " + StandardCharsets.UTF_8.decode(buffer.data.flip()).toString());
+        buffer.data.clear().put(bytes).flip();
+        buffer.socketAddress = socketAddress;
         synchronized (fill) {
-            if (fill.isEmpty()) {
+            if (fill.size() == 0) {
                 HelloUDPUtills.changeInterestToWrite(key, selector);
             }
-            fill.add(new PairBuffer(buffer.clear().put(bytes).flip(), socketAddress));
+            fill.add(buffer);
         }
     }
 
-    private synchronized void write(final ByteBuffer buffer, final SelectionKey key) {
+    private void write(final PairBuffer buffer) {
+        buffer.data.clear().flip();
         synchronized (empty) {
             if (empty.isEmpty()) {
                 HelloUDPUtills.changeInterestToRead(key, selector);
             }
-            empty.add(buffer.clear().flip());
+            empty.add(buffer);
         }
     }
 
-    private void readServer(final SelectionKey key) throws IOException {
-        final ByteBuffer buffer = getEmpty(key);
-        SocketAddress socketAddress = datagramChannel.receive(buffer.clear());
-        executorService.submit(() -> read(buffer, socketAddress, key));
+    private void readServer() throws IOException {
+        final PairBuffer buffer = getEmpty();
+        SocketAddress socketAddress = datagramChannel.receive(buffer.data.clear());
+        executorService.submit(() -> read(buffer, socketAddress));
     }
 
-    private void writeServer(final SelectionKey key) throws IOException {
-        final PairBuffer pairBuffer = getFill(key);
+    private void writeServer() throws IOException {
+        final PairBuffer pairBuffer = getFill();
         datagramChannel.send(pairBuffer.data, pairBuffer.socketAddress);
-        executorService.submit(() -> write(pairBuffer.data, key));
+        write(pairBuffer);
     }
 
     private void run() {
@@ -97,13 +105,13 @@ public class HelloUDPNonblockingServer implements HelloServer {
             try {
                 selector.select();
                 for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
-                    final SelectionKey key = i.next();
+                    key = i.next();
                     try {
                         if (key.isReadable()) {
-                            readServer(key);
+                            readServer();
                         }
                         if (key.isWritable()) {
-                            writeServer(key);
+                            writeServer();
                         }
                     } finally {
                         i.remove();
@@ -115,57 +123,50 @@ public class HelloUDPNonblockingServer implements HelloServer {
         }
     }
 
+    private boolean selectorOpen = false;
+    private boolean channelOpen = false;
+
     @Override
     public void start(final int port, final int threads) {
         executorService = Executors.newFixedThreadPool(threads);
         worker = Executors.newSingleThreadExecutor();
         try {
             selector = Selector.open();
+            selectorOpen = true;
             datagramChannel = DatagramChannel.open();
+            channelOpen = true;
             datagramChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             datagramChannel.configureBlocking(false);
             datagramChannel.bind(new InetSocketAddress(port));
             bufferSize = datagramChannel.socket().getReceiveBufferSize();
             datagramChannel.register(selector, SelectionKey.OP_READ);
+            bytes = new byte[bufferSize + 10];
             fillEmpty(threads);
             worker.submit(this::run);
         } catch (IOException e) {
-            System.out.println("Can't start " + e);
+            System.out.println("Can't open channel " + e);
         }
     }
 
     @Override
     public void close() {
         try {
-            if (selector.isOpen()) {
+            if (selectorOpen) {
                 selector.close();
             }
-            if (datagramChannel.isOpen()) {
+            if (channelOpen) {
                 datagramChannel.close();
             }
-            worker.shutdown();
-            executorService.shutdown();
-            try {
-                worker.awaitTermination(100, TimeUnit.SECONDS);
-                executorService.awaitTermination(100, TimeUnit.SECONDS);
-            } catch (final InterruptedException e) {
-                System.out.println("Can't terminate ExecutorService " + e.getMessage());
-            }
+            HelloUDPUtills.closeExecutorService(worker);
+            HelloUDPUtills.closeExecutorService(executorService);
         } catch (IOException e) {
             System.out.println("Can't close " + e);
         }
     }
 
     public static void main(final String[] args) {
-        if (args == null || args.length != 2 || Arrays.stream(args).anyMatch(Objects::isNull)) {
-            System.out.println("Incorrect arguments");
-            return;
-        }
         try (final HelloUDPNonblockingServer server = new HelloUDPNonblockingServer()) {
-            server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
-            System.out.println("Enter something to close server");
-            new Scanner(System.in).next();
-        } catch (Exception ignored) {
+            HelloUDPUtills.main(args, server);
         }
     }
 }

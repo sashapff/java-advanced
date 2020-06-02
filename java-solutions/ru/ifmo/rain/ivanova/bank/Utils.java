@@ -5,7 +5,7 @@ import java.io.UncheckedIOException;
 import java.rmi.RemoteException;
 
 class Utils {
-    protected static String getFullAccountId(final String id, final int password) {
+    protected static String getFullAccountId(final String id, final long password) {
         return password + ":" + id;
     }
 

@@ -30,14 +30,14 @@ public class Client {
 
         final String firstName = args[0];
         final String lastName = args[1];
-        final int passport = parseArgument(args[2]);
+        final long passport = parseArgument(args[2]);
         final String accountId = args[3];
-        final int addition = parseArgument(args[4]);
+        final long addition = parseArgument(args[4]);
 
         Person person = bank.getRemotePerson(passport);
         if (person == null) {
             System.out.println("Creating person");
-            person = bank.createPerson(passport, firstName, lastName);
+            person = bank.createRemotePerson(passport, firstName, lastName);
         } else {
             if (!person.getFirstName().equals(firstName) || !person.getLastName().equals(lastName)) {
                 System.out.println("Incorrect name of person");

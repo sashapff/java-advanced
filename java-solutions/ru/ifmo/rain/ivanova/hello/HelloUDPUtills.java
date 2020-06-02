@@ -1,11 +1,19 @@
 package ru.ifmo.rain.ivanova.hello;
 
+import info.kgeorgiy.java.advanced.hello.HelloServer;
+
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 class HelloUDPUtills {
     static DatagramPacket newDatagramPacket(final int bufferSize) {
@@ -99,6 +107,37 @@ class HelloUDPUtills {
     static void changeInterestFromWrite(final SelectionKey key, final Selector selector) {
         key.interestOpsAnd(~SelectionKey.OP_WRITE);
         selector.wakeup();
+    }
+
+    static boolean checkArguments(String[] args) {
+        if (args == null || args.length != 2 || Arrays.stream(args).anyMatch(Objects::isNull)) {
+            System.out.println("Incorrect arguments");
+            return false;
+        }
+        return true;
+    }
+
+    static void main(String[] args, HelloServer server) {
+        checkArguments(args);
+        try {
+            server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+            System.out.println("Enter something to close server");
+            new Scanner(System.in).next();
+            server.close();
+        } catch (RuntimeException ignored) {
+            System.out.println("Can't stop");
+        }
+    }
+
+    private static final int AWAIT = 100;
+
+    static void closeExecutorService(final ExecutorService executorService) {
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(AWAIT, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            System.out.println("Can't terminate ExecutorService " + e.getMessage());
+        }
     }
 
 }
