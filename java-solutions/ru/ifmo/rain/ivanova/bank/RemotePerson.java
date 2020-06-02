@@ -8,4 +8,8 @@ class RemotePerson extends AbstractPerson {
         super(passport, firstName, lastName, new ConcurrentHashMap<>());
     }
 
+    @Override
+    public void addAccount(String id, Account account, final String fullAccountId) {
+        addAccount(account, id);
+    }
 }

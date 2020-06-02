@@ -36,7 +36,9 @@ abstract class AbstractPerson implements Person {
     }
 
     @Override
-    public void addAccount(final String id, final Account account) {
+    public abstract void addAccount(final String id, final Account account, final String fullAccountId);
+
+    void addAccount(final Account account, final String id) {
         accounts.put(id, account);
     }
 

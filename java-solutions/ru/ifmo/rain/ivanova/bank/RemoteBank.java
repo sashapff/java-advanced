@@ -44,11 +44,7 @@ public class RemoteBank implements Bank {
                 final Account account = new RemoteAccount(fullAccountId);
                 checkedExport(account);
                 try {
-                    if (person instanceof LocalPerson) {
-                        person.addAccount(id, new LocalAccount(fullAccountId));
-                    } else {
-                        person.addAccount(id, account);
-                    }
+                    person.addAccount(id, account, fullAccountId);
                 } catch (final RemoteException e) {
                     throw new UncheckedIOException(e);
                 }
@@ -111,9 +107,7 @@ public class RemoteBank implements Bank {
     public Person getLocalPerson(final long passport) throws RemoteException {
         System.out.println("Retrieving local person " + passport);
         final Person person = persons.get(passport);
-//        return person instanceof LocalPerson
-//                ? person
-                return new LocalPerson(person.getPassport(), person.getFirstName(), person.getLastName(), person.getPersonAccounts());
+        return new LocalPerson(person.getPassport(), person.getFirstName(), person.getLastName(), person.getPersonAccounts());
     }
 
 }

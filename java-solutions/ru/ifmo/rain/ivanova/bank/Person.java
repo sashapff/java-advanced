@@ -14,7 +14,7 @@ public interface Person extends Remote {
     /** Returns person second name. */
     String getLastName() throws RemoteException;
 
-    void addAccount(final String id, final Account account) throws RemoteException;
+    void addAccount(final String id, final Account account, final String fullAccountId) throws RemoteException;
 
     Account getAccount(final String id) throws RemoteException;
 

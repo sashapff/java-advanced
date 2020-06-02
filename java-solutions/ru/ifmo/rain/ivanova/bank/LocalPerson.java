@@ -11,11 +11,15 @@ class LocalPerson extends AbstractPerson implements Serializable {
         super(passport, firstName, lastName);
         accounts.forEach((key, value) -> {
             try {
-                addAccount(key, new LocalAccount(value));
+                addAccount(new LocalAccount(value), key);
             } catch (RemoteException e) {
                 System.out.println("Can't add account " + e.getMessage());
             }
         });
     }
 
+    @Override
+    public void addAccount(String id, Account account, final String fullAccountId) {
+            addAccount(new LocalAccount(fullAccountId), id);
+    }
 }
