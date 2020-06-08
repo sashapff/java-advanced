@@ -6,12 +6,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class HelloUDPServer implements HelloServer {
     private DatagramSocket datagramSocket;
@@ -57,8 +53,6 @@ public class HelloUDPServer implements HelloServer {
     }
 
     public static void main(final String[] args) {
-        try (final HelloUDPServer server = new HelloUDPServer()) {
-            HelloUDPUtills.main(args, server);
-        }
+        HelloUDPUtills.mainServer(args, new HelloUDPServer());
     }
 }

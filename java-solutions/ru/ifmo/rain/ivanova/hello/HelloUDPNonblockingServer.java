@@ -10,10 +10,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
 import java.util.Iterator;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,8 +23,6 @@ public class HelloUDPNonblockingServer implements HelloServer {
     private ExecutorService worker;
     private SelectionKey key;
 
-    private byte[] bytes;
-
     private class PairBuffer {
         ByteBuffer data;
         SocketAddress socketAddress;
@@ -37,8 +33,8 @@ public class HelloUDPNonblockingServer implements HelloServer {
         }
     }
 
-    private final Queue<PairBuffer> empty = new ArrayDeque<>();
-    private final Queue<PairBuffer> fill = new ArrayDeque<>();
+    private final ConcurrentLinkedQueue<PairBuffer> empty = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<PairBuffer> fill = new ConcurrentLinkedQueue<>();
 
     private void fillEmpty(final int threads) {
         for (int i = 0; i < threads; i++) {
@@ -47,13 +43,11 @@ public class HelloUDPNonblockingServer implements HelloServer {
     }
 
     private PairBuffer getEmpty() {
-        synchronized (empty) {
-            PairBuffer buffer = empty.remove();
-            if (empty.isEmpty()) {
-                HelloUDPUtills.changeInterestFromRead(key, selector);
-            }
-            return buffer;
+        PairBuffer buffer = empty.remove();
+        if (empty.isEmpty()) {
+            HelloUDPUtills.changeInterestFromRead(key, selector);
         }
+        return buffer;
     }
 
     private PairBuffer getFill() {
@@ -67,7 +61,7 @@ public class HelloUDPNonblockingServer implements HelloServer {
     }
 
     private void read(final PairBuffer buffer, final SocketAddress socketAddress) {
-        byte[] bytes = HelloUDPUtills.getBytes("Hello, " + StandardCharsets.UTF_8.decode(buffer.data.flip()).toString());
+        byte[] bytes = HelloUDPUtills.getBytes("Hello, " + HelloUDPUtills.decode(buffer.data.flip()));
         buffer.data.clear().put(bytes).flip();
         buffer.socketAddress = socketAddress;
         synchronized (fill) {
@@ -80,12 +74,10 @@ public class HelloUDPNonblockingServer implements HelloServer {
 
     private void write(final PairBuffer buffer) {
         buffer.data.clear().flip();
-        synchronized (empty) {
-            if (empty.isEmpty()) {
-                HelloUDPUtills.changeInterestToRead(key, selector);
-            }
-            empty.add(buffer);
+        if (empty.isEmpty()) {
+            HelloUDPUtills.changeInterestToRead(key, selector);
         }
+        empty.add(buffer);
     }
 
     private void readServer() throws IOException {
@@ -95,13 +87,13 @@ public class HelloUDPNonblockingServer implements HelloServer {
     }
 
     private void writeServer() throws IOException {
-        final PairBuffer pairBuffer = getFill();
-        datagramChannel.send(pairBuffer.data, pairBuffer.socketAddress);
-        write(pairBuffer);
+        final PairBuffer buffer = getFill();
+        datagramChannel.send(buffer.data, buffer.socketAddress);
+        write(buffer);
     }
 
     private void run() {
-        while (!Thread.interrupted() && !datagramChannel.socket().isClosed()) {
+        while (!Thread.interrupted() && !datagramChannel.socket().isClosed() && selector.isOpen()) {
             try {
                 selector.select();
                 for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
@@ -119,12 +111,10 @@ public class HelloUDPNonblockingServer implements HelloServer {
                 }
             } catch (IOException e) {
                 System.out.println("Can't select");
+                return;
             }
         }
     }
-
-    private boolean selectorOpen = false;
-    private boolean channelOpen = false;
 
     @Override
     public void start(final int port, final int threads) {
@@ -132,15 +122,12 @@ public class HelloUDPNonblockingServer implements HelloServer {
         worker = Executors.newSingleThreadExecutor();
         try {
             selector = Selector.open();
-            selectorOpen = true;
             datagramChannel = DatagramChannel.open();
-            channelOpen = true;
             datagramChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             datagramChannel.configureBlocking(false);
             datagramChannel.bind(new InetSocketAddress(port));
             bufferSize = datagramChannel.socket().getReceiveBufferSize();
             datagramChannel.register(selector, SelectionKey.OP_READ);
-            bytes = new byte[bufferSize + 10];
             fillEmpty(threads);
             worker.submit(this::run);
         } catch (IOException e) {
@@ -151,10 +138,10 @@ public class HelloUDPNonblockingServer implements HelloServer {
     @Override
     public void close() {
         try {
-            if (selectorOpen) {
+            if (selector != null) {
                 selector.close();
             }
-            if (channelOpen) {
+            if (datagramChannel != null) {
                 datagramChannel.close();
             }
             HelloUDPUtills.closeExecutorService(worker);
@@ -165,8 +152,6 @@ public class HelloUDPNonblockingServer implements HelloServer {
     }
 
     public static void main(final String[] args) {
-        try (final HelloUDPNonblockingServer server = new HelloUDPNonblockingServer()) {
-            HelloUDPUtills.main(args, server);
-        }
+        HelloUDPUtills.mainServer(args, new HelloUDPNonblockingServer());
     }
 }

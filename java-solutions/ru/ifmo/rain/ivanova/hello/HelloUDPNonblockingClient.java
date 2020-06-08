@@ -11,13 +11,14 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Objects;
+import java.util.List;
 
 public class HelloUDPNonblockingClient implements HelloClient {
     private String prefix;
     private int requests;
+    private List<DatagramChannel> datagramChannelList = new ArrayList<>();
 
     private class Context {
         ByteBuffer buffer;
@@ -65,12 +66,14 @@ public class HelloUDPNonblockingClient implements HelloClient {
 
     @Override
     public void run(final String host, final int port, final String prefix, final int threads, final int requests) {
+        System.out.println("START PORT " + port);
         this.prefix = prefix;
         this.requests = requests;
         try (final Selector selector = Selector.open()) {
             for (int i = 0; i < threads; i++) {
                 try {
                     final DatagramChannel datagramChannel = DatagramChannel.open();
+                    datagramChannelList.add(datagramChannel);
                     datagramChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
                     datagramChannel.configureBlocking(false);
                     datagramChannel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
@@ -82,16 +85,16 @@ public class HelloUDPNonblockingClient implements HelloClient {
             }
             while (!Thread.interrupted() && selector.isOpen() && !selector.keys().isEmpty()) {
                 try {
-                    selector.select(100);
+                    selector.select(10);
                     if (!selector.selectedKeys().isEmpty()) {
                         for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
                             final SelectionKey key = i.next();
                             try {
-                                if (key.isReadable()) {
-                                    readClient(key);
-                                }
                                 if (key.isWritable()) {
                                     writeClient(key);
+                                }
+                                if (key.isReadable()) {
+                                    readClient(key);
                                 }
                             } finally {
                                 i.remove();
@@ -108,17 +111,24 @@ public class HelloUDPNonblockingClient implements HelloClient {
                     System.out.println("Can't select");
                 }
             }
+            System.out.println("Finish while");
         } catch (IOException e) {
             System.out.println("Can't open Selector");
+            return;
+        }
+
+        for (DatagramChannel datagramChannel : datagramChannelList) {
+            if (datagramChannel != null) {
+                try {
+                    datagramChannel.close();
+                } catch (IOException e) {
+                    System.out.println("Can't close datagram channel");
+                }
+            }
         }
     }
 
     public static void main(final String[] args) {
-        if (args == null || args.length != 5 || Arrays.stream(args).anyMatch(Objects::isNull)) {
-            System.out.println("Incorrect arguments");
-            return;
-        }
-        new HelloUDPNonblockingClient().run(args[0], Integer.parseInt(args[1]), args[2],
-                Integer.parseInt(args[3]), Integer.parseInt(args[4]));
+        HelloUDPUtills.mainClient(args, new HelloUDPNonblockingClient());
     }
 }

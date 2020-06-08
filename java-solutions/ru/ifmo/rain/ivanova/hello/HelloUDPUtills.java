@@ -1,5 +1,6 @@
 package ru.ifmo.rain.ivanova.hello;
 
+import info.kgeorgiy.java.advanced.hello.HelloClient;
 import info.kgeorgiy.java.advanced.hello.HelloServer;
 
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 class HelloUDPUtills {
@@ -109,16 +109,18 @@ class HelloUDPUtills {
         selector.wakeup();
     }
 
-    static boolean checkArguments(String[] args) {
-        if (args == null || args.length != 2 || Arrays.stream(args).anyMatch(Objects::isNull)) {
+    static boolean checkArguments(String[] args, int length) {
+        if (args == null || args.length != length || Arrays.stream(args).anyMatch(Objects::isNull)) {
             System.out.println("Incorrect arguments");
             return false;
         }
         return true;
     }
 
-    static void main(String[] args, HelloServer server) {
-        checkArguments(args);
+    static void mainServer(String[] args, HelloServer server) {
+        if (!checkArguments(args, 2)) {
+            return;
+        }
         try {
             server.start(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
             System.out.println("Enter something to close server");
@@ -138,6 +140,14 @@ class HelloUDPUtills {
         } catch (final InterruptedException e) {
             System.out.println("Can't terminate ExecutorService " + e.getMessage());
         }
+    }
+
+    static void mainClient(String[] args, HelloClient client) {
+        if (!checkArguments(args, 5)) {
+            return;
+        }
+        client.run(args[0], Integer.parseInt(args[1]), args[2],
+                Integer.parseInt(args[3]), Integer.parseInt(args[4]));
     }
 
 }

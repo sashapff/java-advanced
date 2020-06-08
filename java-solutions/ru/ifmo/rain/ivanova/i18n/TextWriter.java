@@ -2,6 +2,7 @@ package ru.ifmo.rain.ivanova.i18n;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
 class TextWriter {
@@ -17,15 +18,18 @@ class TextWriter {
     }
 
     private void writeHead(final String inputFile) throws IOException {
-        writer.write("<h1>\n");
-        writer.write(String.format("%s %s: \n" + inputFile,
+        writer.write("<h1>");
+        writer.write(MessageFormat.format(
+                "{0} {1}: {2}",
                 outputBundle.getString("Analyzed"),
-                outputBundle.getString("file")));
+                outputBundle.getString("file"),
+                inputFile
+        ));
         writer.write("</h1>\n");
     }
 
     private void before() throws IOException {
-        writer.write("<h2>\n");
+        writer.write("<h2>");
     }
 
     private void after() throws IOException {
@@ -37,17 +41,20 @@ class TextWriter {
     }
 
     private void writeItemHead(final TextItem item, final String ofOne) throws IOException {
-        writer.write(String.format(
-                "<p>%s %s: %d</p>\n",
+        writer.write("<p>");
+        writer.write(MessageFormat.format(
+                "{0} {1}: {2, number}",
                 getString("Number"),
                 ofOne,
-                item.getNumber()));
+                item.getNumber()
+        ));
+        writer.write("</p>");
     }
 
     private void writeSummary() throws IOException {
         before();
-        writer.write(String.format(
-                "%s %s\n",
+        writer.write(MessageFormat.format(
+                "{0} {1}",
                 getString("Summary"),
                 getString("statistics")
         ));
@@ -63,19 +70,18 @@ class TextWriter {
     private void writeCommonItem(final TextItem item, final String ofMany, final String one,
                                  final String ofOne) throws IOException {
         before();
-        writer.write(String.format(
-                "%s %s\n",
+        writer.write(MessageFormat.format(
+                "{0} {1}",
                 getString("Statistics"),
                 ofMany
         ));
         after();
-        writer.write(String.format(
-
-                "<p>%s %s: %d (%s: %d)</p>\n" +
-                        "<p>%s%s: %s</p>\n" +
-                        "<p>%s%s: %s</p>\n" +
-                        "<p>%s%s %s: %d (%s)</p>\n" +
-                        "<p>%s%s %s: %d (%s)</p>\n",
+        writer.write(MessageFormat.format(
+                "<p>{0} {1}: {2, number} ({3}: {4, number})</p>\n" +
+                        "<p>{5}{6}: {7}</p>\n" +
+                        "<p>{8}{9}: {10}</p>\n" +
+                        "<p>{11}{12} {13}: {14, number} ({15})</p>\n" +
+                        "<p>{16}{17} {18}: {19, number} ({20})</p>\n",
 
                 getString("Number"),
                 ofMany,
@@ -86,7 +92,6 @@ class TextWriter {
                 getString("Minimum"),
                 one,
                 item.getMinNumberValue(),
-
                 getString("Maximum"),
                 one,
                 item.getMaxNumberValue(),
@@ -102,17 +107,14 @@ class TextWriter {
                 ofOne,
                 item.getMaxLength(),
                 item.getMaxLengthValue()
-
         ));
     }
 
     private void writeLengthItem(final TextItem item, final String ofMany,
                                  final String prOne, final String ofOne) throws IOException {
         writeCommonItem(item, ofMany, prOne, ofOne);
-        writer.write(String.format(
-
-                "<p>%s %s: %d</p>\n",
-
+        writer.write(MessageFormat.format(
+                "<p>{0} {1}: {2, number}</p>\n",
                 getString("medianLength"),
                 ofOne,
                 item.getMedianLength()
@@ -122,10 +124,8 @@ class TextWriter {
     private void writeValueItem(final TextItem item, final String ofMany,
                                 final String prOne, final String ofOne) throws IOException {
         writeCommonItem(item, ofMany, prOne, ofOne);
-        writer.write(String.format(
-
-                "<p>%s %s: %s</p>\n",
-
+        writer.write(MessageFormat.format(
+                "<p>{0} {1}: {2}</p>\n",
                 getString("medianValue"),
                 ofOne,
                 item.getMedianValue()
