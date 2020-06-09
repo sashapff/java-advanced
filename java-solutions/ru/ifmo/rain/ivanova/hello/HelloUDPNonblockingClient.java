@@ -15,7 +15,6 @@ import java.util.Iterator;
 public class HelloUDPNonblockingClient implements HelloClient {
     private String prefix;
     private int requests;
-    private byte[][] PREFIX;
 
     private class Context {
         ByteBuffer buffer;
@@ -48,8 +47,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
 
         void write(final SelectionKey key) throws IOException {
             final DatagramChannel channel = (DatagramChannel) key.channel();
-            buffer.put(PREFIX[thread]);
-            buffer.put(Integer.toString(request).getBytes()).flip();
+            buffer.put(HelloUDPUtills.getBytes(prefix + thread + "_" + request)).flip();
             channel.send(buffer, channel.getRemoteAddress());
             buffer.clear();
             key.interestOps(SelectionKey.OP_READ);
@@ -92,7 +90,6 @@ public class HelloUDPNonblockingClient implements HelloClient {
         this.prefix = prefix;
         this.requests = requests;
         try (final Selector selector = Selector.open()) {
-            PREFIX = new byte[requests][100];
             for (int i = 0; i < threads; i++) {
                 try {
                     final DatagramChannel datagramChannel = DatagramChannel.open();
@@ -101,7 +98,6 @@ public class HelloUDPNonblockingClient implements HelloClient {
                     datagramChannel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
                     datagramChannel.register(selector, SelectionKey.OP_WRITE,
                             new Context(ByteBuffer.allocate(datagramChannel.socket().getReceiveBufferSize()), i));
-                    PREFIX[i] = HelloUDPUtills.getBytes(prefix + i + "_");
                 } catch (IOException e) {
                     System.out.println("Can't open DatagramChannel");
                     return;
