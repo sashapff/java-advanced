@@ -114,6 +114,7 @@ class TextWriter {
                 ofOne,
                 item.getMaxLength(),
                 item.getMaxLengthValue(),
+
                 outputLocale
         ));
     }

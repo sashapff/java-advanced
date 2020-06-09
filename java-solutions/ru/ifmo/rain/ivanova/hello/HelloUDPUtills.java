@@ -45,10 +45,6 @@ class HelloUDPUtills {
         datagramSocket.send(packet);
     }
 
-    static String decode(final ByteBuffer buffer) {
-        return StandardCharsets.UTF_8.decode(buffer).toString();
-    }
-
     static class Pair {
         boolean result;
         int i;
@@ -57,36 +53,6 @@ class HelloUDPUtills {
             this.result = result;
             this.i = i;
         }
-    }
-
-    private static int skipChars(final String s, int i) {
-        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
-            i++;
-        }
-        return i;
-    }
-
-    private static boolean checkSubStr(final String s, final String as, final int i) {
-        return !s.substring(i, i + as.length()).equals(as);
-    }
-
-    private static Pair checkInt(int i, final String s, final String as) {
-        i = skipChars(s, i);
-        if (i == s.length() || checkSubStr(s, as, i)) {
-            return new Pair(false, i);
-        }
-        i += as.length();
-        return new Pair(true, i);
-    }
-
-    static boolean checkInts(final String s, final int a, final int b) {
-        final int i = 0;
-        final Pair ap = checkInt(i, s, Integer.toString(a));
-        final Pair bp = checkInt(ap.i, s, Integer.toString(b));
-        if (!bp.result || !ap.result) {
-            return false;
-        }
-        return skipChars(s, bp.i) == s.length();
     }
 
     static void changeInterestToRead(final SelectionKey key, final Selector selector) {
@@ -148,6 +114,41 @@ class HelloUDPUtills {
         }
         client.run(args[0], Integer.parseInt(args[1]), args[2],
                 Integer.parseInt(args[3]), Integer.parseInt(args[4]));
+    }
+
+
+    private static int skipChars(final String s, int i) {
+        while (i < s.length() && !Character.isDigit(s.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    private static boolean checkSubStr(final String s, final String as, final int i) {
+        return !s.substring(i, i + as.length()).equals(as);
+    }
+
+    private static Pair checkInt(int i, final String s, final String as) {
+        i = skipChars(s, i);
+        if (i == s.length() || checkSubStr(s, as, i)) {
+            return new Pair(false, i);
+        }
+        i += as.length();
+        return new Pair(true, i);
+    }
+
+    static boolean checkInts(final String s, final int a, final int b) {
+        final int i = 0;
+        final Pair ap = checkInt(i, s, Integer.toString(a));
+        final Pair bp = checkInt(ap.i, s, Integer.toString(b));
+        if (!bp.result || !ap.result) {
+            return false;
+        }
+        return skipChars(s, bp.i) == s.length();
+    }
+
+    static String decode(final ByteBuffer buffer) {
+        return StandardCharsets.UTF_8.decode(buffer).toString();
     }
 
 }

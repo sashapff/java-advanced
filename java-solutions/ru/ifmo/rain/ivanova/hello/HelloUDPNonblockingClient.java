@@ -15,6 +15,7 @@ import java.util.Iterator;
 public class HelloUDPNonblockingClient implements HelloClient {
     private String prefix;
     private int requests;
+    private byte[][] PREFIX;
 
     private class Context {
         ByteBuffer buffer;
@@ -47,19 +48,12 @@ public class HelloUDPNonblockingClient implements HelloClient {
 
         void write(final SelectionKey key) throws IOException {
             final DatagramChannel channel = (DatagramChannel) key.channel();
-            buffer.put(HelloUDPUtills.getBytes(prefix + thread + "_" + request)).flip();
+            buffer.put(PREFIX[thread]);
+            buffer.put(Integer.toString(request).getBytes()).flip();
             channel.send(buffer, channel.getRemoteAddress());
             buffer.clear();
             key.interestOps(SelectionKey.OP_READ);
         }
-    }
-
-    private void readClient(final SelectionKey key) throws IOException {
-        ((Context) key.attachment()).read(key);
-    }
-
-    private void writeClient(final SelectionKey key) throws IOException {
-        ((Context) key.attachment()).write(key);
     }
 
     private void run(final Selector selector) {
@@ -71,10 +65,10 @@ public class HelloUDPNonblockingClient implements HelloClient {
                         final SelectionKey key = i.next();
                         try {
                             if (key.isWritable()) {
-                                writeClient(key);
+                                ((Context) key.attachment()).write(key);
                             }
                             if (key.isReadable()) {
-                                readClient(key);
+                                ((Context) key.attachment()).read(key);
                             }
                         } finally {
                             i.remove();
@@ -83,7 +77,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
                 } else {
                     for (final SelectionKey key : selector.keys()) {
                         if (key.isWritable()) {
-                            writeClient(key);
+                            ((Context) key.attachment()).write(key);
                         }
                     }
                 }
@@ -98,6 +92,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
         this.prefix = prefix;
         this.requests = requests;
         try (final Selector selector = Selector.open()) {
+            PREFIX = new byte[requests][100];
             for (int i = 0; i < threads; i++) {
                 try {
                     final DatagramChannel datagramChannel = DatagramChannel.open();
@@ -106,6 +101,7 @@ public class HelloUDPNonblockingClient implements HelloClient {
                     datagramChannel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
                     datagramChannel.register(selector, SelectionKey.OP_WRITE,
                             new Context(ByteBuffer.allocate(datagramChannel.socket().getReceiveBufferSize()), i));
+                    PREFIX[i] = HelloUDPUtills.getBytes(prefix + i + "_");
                 } catch (IOException e) {
                     System.out.println("Can't open DatagramChannel");
                     return;

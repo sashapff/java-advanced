@@ -22,6 +22,7 @@ public class HelloUDPNonblockingServer implements HelloServer {
     private ExecutorService executorService;
     private ExecutorService worker;
     private SelectionKey key;
+    private byte[] HELLO = HelloUDPUtills.getBytes("Hello, ");
 
     private class PairBuffer {
         ByteBuffer data;
@@ -38,16 +39,20 @@ public class HelloUDPNonblockingServer implements HelloServer {
 
     private void fillEmpty(final int threads) {
         for (int i = 0; i < threads; i++) {
-            empty.add(new PairBuffer(ByteBuffer.allocate(bufferSize), new InetSocketAddress(0)));
+            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+            buffer.put(HELLO);
+            empty.add(new PairBuffer(buffer, new InetSocketAddress(0)));
         }
     }
 
     private PairBuffer getEmpty() {
-        PairBuffer buffer = empty.remove();
-        if (empty.isEmpty()) {
-            HelloUDPUtills.changeInterestFromRead(key, selector);
+        synchronized (empty) {
+            PairBuffer buffer = empty.remove();
+            if (empty.isEmpty()) {
+                HelloUDPUtills.changeInterestFromRead(key, selector);
+            }
+            return buffer;
         }
-        return buffer;
     }
 
     private PairBuffer getFill() {
@@ -60,9 +65,10 @@ public class HelloUDPNonblockingServer implements HelloServer {
         }
     }
 
-    private void read(final PairBuffer buffer, final SocketAddress socketAddress) {
-        byte[] bytes = HelloUDPUtills.getBytes("Hello, " + HelloUDPUtills.decode(buffer.data));
-        buffer.data.clear().put(bytes).flip();
+    private void readServer() throws IOException {
+        final PairBuffer buffer = getEmpty();
+        SocketAddress socketAddress = datagramChannel.receive(buffer.data);
+        buffer.data.flip();
         buffer.socketAddress = socketAddress;
         synchronized (fill) {
             if (fill.size() == 0) {
@@ -72,25 +78,19 @@ public class HelloUDPNonblockingServer implements HelloServer {
         }
     }
 
-    private void write(final PairBuffer buffer) {
-        if (empty.isEmpty()) {
-            HelloUDPUtills.changeInterestToRead(key, selector);
-        }
-        empty.add(buffer);
-    }
-
-    private void readServer() throws IOException {
-        final PairBuffer buffer = getEmpty();
-        SocketAddress socketAddress = datagramChannel.receive(buffer.data.clear());
-        buffer.data.flip();
-        executorService.submit(() -> read(buffer, socketAddress));
-    }
-
     private void writeServer() throws IOException {
         final PairBuffer buffer = getFill();
         datagramChannel.send(buffer.data, buffer.socketAddress);
-        buffer.data.clear().flip();
-        write(buffer);
+        buffer.data.clear();
+        executorService.submit(() -> {
+            buffer.data.put(HELLO);
+            synchronized (empty) {
+                if (empty.isEmpty()) {
+                    HelloUDPUtills.changeInterestToRead(key, selector);
+                }
+                empty.add(buffer);
+            }
+        });
     }
 
     private void run() {
