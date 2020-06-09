@@ -10,15 +10,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 public class HelloUDPNonblockingClient implements HelloClient {
     private String prefix;
     private int requests;
-    private List<DatagramChannel> datagramChannelList = new ArrayList<>();
 
     private class Context {
         ByteBuffer buffer;
@@ -36,44 +32,75 @@ public class HelloUDPNonblockingClient implements HelloClient {
 
         void read(final SelectionKey key) throws IOException {
             final DatagramChannel channel = (DatagramChannel) key.channel();
-            channel.receive(buffer.clear());
-            if (HelloUDPUtills.checkInts(HelloUDPUtills.decode(buffer.flip()), thread, request)) {
+            channel.receive(buffer);
+            buffer.flip();
+            if (HelloUDPUtills.checkInts(HelloUDPUtills.decode(buffer), thread, request)) {
                 increaseRequests();
                 if (request == requests) {
                     channel.close();
                     return;
                 }
             }
+            buffer.clear();
             key.interestOps(SelectionKey.OP_WRITE);
         }
 
         void write(final SelectionKey key) throws IOException {
             final DatagramChannel channel = (DatagramChannel) key.channel();
-            channel.send(buffer.clear().put((prefix + thread + "_" + request).
-                    getBytes(StandardCharsets.UTF_8)).flip(), channel.getRemoteAddress());
+            buffer.put(HelloUDPUtills.getBytes(prefix + thread + "_" + request)).flip();
+            channel.send(buffer, channel.getRemoteAddress());
+            buffer.clear();
             key.interestOps(SelectionKey.OP_READ);
         }
     }
 
     private void readClient(final SelectionKey key) throws IOException {
         ((Context) key.attachment()).read(key);
-
     }
 
     private void writeClient(final SelectionKey key) throws IOException {
         ((Context) key.attachment()).write(key);
     }
 
+    private void run(final Selector selector) {
+        while (!Thread.interrupted() && selector.isOpen() && !selector.keys().isEmpty()) {
+            try {
+                selector.select(10);
+                if (!selector.selectedKeys().isEmpty()) {
+                    for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
+                        final SelectionKey key = i.next();
+                        try {
+                            if (key.isWritable()) {
+                                writeClient(key);
+                            }
+                            if (key.isReadable()) {
+                                readClient(key);
+                            }
+                        } finally {
+                            i.remove();
+                        }
+                    }
+                } else {
+                    for (final SelectionKey key : selector.keys()) {
+                        if (key.isWritable()) {
+                            writeClient(key);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Can't select");
+            }
+        }
+    }
+
     @Override
     public void run(final String host, final int port, final String prefix, final int threads, final int requests) {
-        System.out.println("START PORT " + port);
         this.prefix = prefix;
         this.requests = requests;
         try (final Selector selector = Selector.open()) {
             for (int i = 0; i < threads; i++) {
                 try {
                     final DatagramChannel datagramChannel = DatagramChannel.open();
-                    datagramChannelList.add(datagramChannel);
                     datagramChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
                     datagramChannel.configureBlocking(false);
                     datagramChannel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
@@ -81,50 +108,12 @@ public class HelloUDPNonblockingClient implements HelloClient {
                             new Context(ByteBuffer.allocate(datagramChannel.socket().getReceiveBufferSize()), i));
                 } catch (IOException e) {
                     System.out.println("Can't open DatagramChannel");
+                    return;
                 }
             }
-            while (!Thread.interrupted() && selector.isOpen() && !selector.keys().isEmpty()) {
-                try {
-                    selector.select(10);
-                    if (!selector.selectedKeys().isEmpty()) {
-                        for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
-                            final SelectionKey key = i.next();
-                            try {
-                                if (key.isWritable()) {
-                                    writeClient(key);
-                                }
-                                if (key.isReadable()) {
-                                    readClient(key);
-                                }
-                            } finally {
-                                i.remove();
-                            }
-                        }
-                    } else {
-                        for (final SelectionKey key : selector.keys()) {
-                            if (key.isWritable()) {
-                                writeClient(key);
-                            }
-                        }
-                    }
-                } catch (IOException e) {
-                    System.out.println("Can't select");
-                }
-            }
-            System.out.println("Finish while");
+            run(selector);
         } catch (IOException e) {
             System.out.println("Can't open Selector");
-            return;
-        }
-
-        for (DatagramChannel datagramChannel : datagramChannelList) {
-            if (datagramChannel != null) {
-                try {
-                    datagramChannel.close();
-                } catch (IOException e) {
-                    System.out.println("Can't close datagram channel");
-                }
-            }
         }
     }
 

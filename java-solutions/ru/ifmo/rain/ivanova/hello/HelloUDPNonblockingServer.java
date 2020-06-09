@@ -61,7 +61,7 @@ public class HelloUDPNonblockingServer implements HelloServer {
     }
 
     private void read(final PairBuffer buffer, final SocketAddress socketAddress) {
-        byte[] bytes = HelloUDPUtills.getBytes("Hello, " + HelloUDPUtills.decode(buffer.data.flip()));
+        byte[] bytes = HelloUDPUtills.getBytes("Hello, " + HelloUDPUtills.decode(buffer.data));
         buffer.data.clear().put(bytes).flip();
         buffer.socketAddress = socketAddress;
         synchronized (fill) {
@@ -73,7 +73,6 @@ public class HelloUDPNonblockingServer implements HelloServer {
     }
 
     private void write(final PairBuffer buffer) {
-        buffer.data.clear().flip();
         if (empty.isEmpty()) {
             HelloUDPUtills.changeInterestToRead(key, selector);
         }
@@ -83,12 +82,14 @@ public class HelloUDPNonblockingServer implements HelloServer {
     private void readServer() throws IOException {
         final PairBuffer buffer = getEmpty();
         SocketAddress socketAddress = datagramChannel.receive(buffer.data.clear());
+        buffer.data.flip();
         executorService.submit(() -> read(buffer, socketAddress));
     }
 
     private void writeServer() throws IOException {
         final PairBuffer buffer = getFill();
         datagramChannel.send(buffer.data, buffer.socketAddress);
+        buffer.data.clear().flip();
         write(buffer);
     }
 

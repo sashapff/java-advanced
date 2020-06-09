@@ -3,18 +3,21 @@ package ru.ifmo.rain.ivanova.i18n;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.ResourceBundle;
 
 class TextWriter {
     private final BufferedWriter writer;
     private final ResourceBundle outputBundle;
     private final TextHandler textHandler;
+    private final Locale outputLocale;
 
     TextWriter(final BufferedWriter writer, final ResourceBundle outputBundle,
                final TextHandler textHandler) {
         this.writer = writer;
         this.outputBundle = outputBundle;
         this.textHandler = textHandler;
+        this.outputLocale = outputBundle.getLocale();
     }
 
     private void writeHead(final String inputFile) throws IOException {
@@ -23,7 +26,8 @@ class TextWriter {
                 "{0} {1}: {2}",
                 outputBundle.getString("Analyzed"),
                 outputBundle.getString("file"),
-                inputFile
+                inputFile,
+                outputLocale
         ));
         writer.write("</h1>\n");
     }
@@ -46,7 +50,8 @@ class TextWriter {
                 "{0} {1}: {2, number}",
                 getString("Number"),
                 ofOne,
-                item.getNumber()
+                item.getNumber(),
+                outputLocale
         ));
         writer.write("</p>");
     }
@@ -56,7 +61,8 @@ class TextWriter {
         writer.write(MessageFormat.format(
                 "{0} {1}",
                 getString("Summary"),
-                getString("statistics")
+                getString("statistics"),
+                outputLocale
         ));
         after();
         writeItemHead(textHandler.getSentences(), getString("ofSentences"));
@@ -73,7 +79,8 @@ class TextWriter {
         writer.write(MessageFormat.format(
                 "{0} {1}",
                 getString("Statistics"),
-                ofMany
+                ofMany,
+                outputLocale
         ));
         after();
         writer.write(MessageFormat.format(
@@ -106,7 +113,8 @@ class TextWriter {
                 getString("prLength"),
                 ofOne,
                 item.getMaxLength(),
-                item.getMaxLengthValue()
+                item.getMaxLengthValue(),
+                outputLocale
         ));
     }
 
@@ -117,7 +125,8 @@ class TextWriter {
                 "<p>{0} {1}: {2, number}</p>\n",
                 getString("medianLength"),
                 ofOne,
-                item.getMedianLength()
+                item.getMedianLength(),
+                outputLocale
         ));
     }
 
@@ -128,7 +137,8 @@ class TextWriter {
                 "<p>{0} {1}: {2}</p>\n",
                 getString("medianValue"),
                 ofOne,
-                item.getMedianValue()
+                item.getMedianValue(),
+                outputLocale
         ));
     }
 
